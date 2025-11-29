@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matrix Color Picker</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <script type="text/javascript" src="/iro.min.js"></script>
+    <link rel="stylesheet" href="ColorPicker.css">
+    <script src="ColorPicker.js"></script>
+</head>
+<body>
+    <h1>kies een kleur</h1>
+    <div id="picker"></div>
+
+    <div id="effect-wrapper">
+        <label for="effect">kies een effect:</label>
+        <select id="effect">
+            <option value="WORDCLOCK">woord klok</option>
+            <option value="SCROLLMESSAGE">bericht runner</option>
+            <option value="RAINBOW">regenboog</option>
+            <option value="MATRIX_RAIN">the matrix</option>
+            <option value="FIRE">brand</option>
+            <option value="WAVES">golven</option>
+            <option value="PLASMA">plasma</option>
+            <option value="SNOW">sneeuw</option>
+            <option value="STARS">sterren</option>
+            <option value="WARP">warp</option>
+            <option value="FIREWORK">firework</option>
+            <option value="AURORA">aurora</option>
+            <option value="CONFETTI">confetti</option>
+        </select>
+
+        <div id="wordclockControls" class="wrapper">
+            <!-- toon "HET IS" ja/nee -->
+            <div class="slider-row">
+                <label for="HETIS-yn">toon HET IS:</label>
+                <label class="switch-yn">
+                    <input type="checkbox" id="HETIS-yn">
+                    <span class="slider-yn"></span>
+                </label>
+            </div>
+        </div>
+
+        <div id="scroll-options" class="wrapper">
+            <label for="scroll-text">bericht:</label>
+            <input type="text" id="scroll-text" placeholder="typ je bericht hier" />
+            <label for="scroll-duration">duur (minuten, 0 = oneindig, -1 = 1 keer):</label>
+            <input type="number" id="scroll-duration" min="0" value="0" />
+
+            <div class="slider-row">
+                <label for="scroll-speed">snelheid (0-100):</label>
+                <span id="scroll-speed-value">50</span>
+            </div>
+            <input type="range" id="scroll-speed" min="0" max="100" value="50" />
+        </div>
+
+        <!-- RAINBOW speed -->
+        <div id="rainbowControls" class="wrapper">
+            <div class="slider-row">
+                <label for="rainbow-speed">snelheid (0-100):</label>
+                <span id="rainbow-speed-value">50</span>
+            </div>
+            <input type="range" id="rainbow-speed" min="0" max="100" value="50" />
+            <!-- RAINBOW brightness-->
+            <div class="slider-row">
+                <label for="brightness-rainbow">helderheid (0-255):</label>
+                <span id="brightness-rainbow-value">128</span>
+            </div>
+            <input type="range" id="brightness-rainbow" min="0" max="255" value="128" />
+        </div>
+
+        <!-- MATRIX_RAIN Controls -->
+        <div id="matrixControls" class="wrapper">
+            <!-- snelheid -->
+            <div class="slider-row">
+                <label for="matrix-speed">snelheid:</label>
+                <span id="matrix-speed-value">50 (0-100)</span>
+            </div>
+            <input type="range" id="matrix-speed" min="0" max="100" value="50" />
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-matrix">helderheid (0-255):</label>
+                <span id="brightness-matrix-value">128</span>
+            </div>
+            <input type="range" id="brightness-matrix" min="0" max="255" value="128" />
+            <label for="matrix-trail">spoorlengte (1-12):</label>
+            <input type="number" id="matrix-trail" min="1" max="12" value="6" />
+        </div>
+
+        <!-- FIRE Speed -->
+        <div id="fireControls" class="wrapper">
+            <div class="slider-row">
+                <label for="fire-speed">snelheid (ms per frame 20-200):</label>
+                <span id="fire-speed-value">80</span>
+            </div>
+            <input type="range" id="fire-speed" min="30" max="200" value="80" />
+            <!-- FIRE Intensity -->
+            <div class="slider-row">
+                <label for="fire-intensity">intensiteit (0-255):</label>
+                <span id="fire-intensity-value">120</span>
+            </div>
+            <input type="range" id="fire-intensity" min="10" max="255" value="120" />
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-fire">helderheid (0-255):</label>
+                <span id="brightness-fire-value">128</span>
+            </div>
+            <input type="range" id="brightness-fire" min="0" max="255" value="128" />
+        </div>
+
+        <!-- WAVES Controls -->
+        <div id="wavesControls" class="wrapper">
+            <label for="wave-palette">kleurpalet:</label>
+            <select id="wave-palette"></select>
+
+            <div class="slider-row">
+                <label for="wave-speed">verticale snelheid (1-60):</label>
+                <span id="wave-speed-value">5</span>
+            </div>
+            <input type="range" id="wave-speed" min="1" max="60" value="5" />
+
+            <div class="slider-row">
+                <label for="wave-scroll">horizontale scroll (0-20):</label>
+                <span id="wave-scroll-value">4</span>
+            </div>
+            <input type="range" id="wave-scroll" min="0" max="20" value="4" />
+
+            <div class="slider-row">
+                <label for="wave-color-speed">kleurverschuiving (1-50):</label>
+                <span id="wave-color-speed-value">5</span>
+            </div>
+            <input type="range" id="wave-color-speed" min="1" max="50" value="5" />
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-wave">helderheid (0-255):</label>
+                <span id="brightness-wave-value">128</span>
+            </div>
+            <input type="range" id="brightness-wave" min="0" max="255" value="128" />
+        </div>
+
+        <!-- PLASMA Controls -->
+        <div id="plasmaControls" class="wrapper">
+            <label for="plasma-palette">kleurpalet:</label>
+            <select id="plasma-palette"></select>
+
+            <div class="slider-row">
+                <label for="plasma-speed">snelheid (1-10):</label>
+                <span id="plasma-speed-value">5</span>
+            </div>
+            <input type="range" id="plasma-speed" min="1" max="10" value="5" />
+
+            <div class="slider-row">
+                <label for="plasma-scale">schaal (1-50):</label>
+                <span id="plasma-scale-value">5</span>
+            </div>
+            <input type="range" id="plasma-scale" min="1" max="50" value="5" />
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-plasma">helderheid (0-255):</label>
+                <span id="brightness-plasma-value">128</span>
+            </div>
+            <input type="range" id="brightness-plasma" min="0" max="255" value="128" />
+        </div>
+
+        <!-- SNOW Speed -->
+        <div id="snowControls" class="wrapper">
+            <div class="slider-row">
+                <label for="snow-speed">snelheid (1-10):</label>
+                <span id="snow-speed-value">2</span>
+            </div>
+            <input type="range" id="snow-speed" min="1" max="10" value="2" />
+            <!-- SNOW Count -->
+            <div class="slider-row">
+                <label for="snow-count">aantal vlokjes (1-30):</label>
+                <span id="snow-count-value">15</span>
+            </div>
+            <input type="range" id="snow-count" min="1" max="30" value="15" />
+            <!-- SNOW Wind -->
+            <div class="slider-row">
+                <label for="snow-wind">wind (1-10):</label>
+                <span id="snow-wind-value">2</span>
+            </div>
+            <input type="range" id="snow-wind" min="0" max="10" value="2" />
+            <!-- SNOW helderheid -->
+            <div class="slider-row">
+                <label for="brightness-snow">helderheid (0-255):</label>
+                <span id="brightness-snow-value">128</span>
+            </div>
+            <input type="range" id="brightness-snow" min="0" max="255" value="128" />
+        </div>
+
+        <!-- STARS Count -->
+        <div id="starsControls" class="wrapper">
+            <div class="slider-row">
+                <label for="stars-count">aantal sterren (1-100):</label>
+                <span id="stars-count-value">15</span>
+            </div>
+            <input type="range" id="stars-count" min="1" max="100" value="10" />
+            <!-- SNOW DimTime -->
+            <div class="slider-row">
+                <label for="stars-dimtime">uitdooftijd in ms (1-3000):</label>
+                <span id="stars-dimtime-value">1000</span>
+            </div>
+            <input type="range" id="stars-dimtime" min="1" max="3000" value="500" />
+            <!-- SNOW Appearance speed -->
+            <div class="slider-row">
+                <label for="stars-appspeed">interval nieuwe sterren in ms (1-300):</label>
+                <span id="stars-appspeed-value">50</span>
+            </div>
+            <input type="range" id="stars-appspeed" min="1" max="3000" value="1000" />
+            <!-- SNOW Colormode -->
+            <div class="slider-row">
+                <label for="stars-colormode"> kleur: 1 = wit, 2 = palette, 3 = random:</label>
+                <span id="stars-colormode-value">1</span>
+            </div>
+            <input type="range" id="stars-colormode" min="1" max="3" value="1" />
+            <!-- SNOW helderheid -->
+            <div class="slider-row">
+                <label for="brightness-stars">helderheid (0-255):</label>
+                <span id="brightness-stars-value">128</span>
+            </div>
+            <input type="range" id="brightness-stars" min="0" max="255" value="128" />
+        </div>
+        <!-- WARP Controls -->
+        <div id="warpControls" class="wrapper">
+            <!-- kleurpalet -->
+            <div class="slider-row">
+                <label for="warp-palette">kleurpalet:</label>
+                <select id="warp-palette"></select>
+            </div>
+
+            <!-- modus -->
+            <div class="slider-row">
+                <label for="warp-mode">modus:</label>
+                <select id="warp-mode">
+                    <option value="0">warp-gat (polar)</option>
+                    <option value="1">trechter (log)</option>
+                </select>
+            </div>
+
+            <!-- snelheid -->
+            <div class="slider-row">
+                <label for="warp-speed">snelheid (1-100):</label>
+                <span id="warp-speed-value">100</span>
+            </div>
+            <input type="range" id="warp-speed" min="1" max="100" value="100" />
+
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-warp">helderheid (0-255):</label>
+                <span id="brightness-warp-value">128</span>
+            </div>
+            <input type="range" id="brightness-warp" min="0" max="255" value="128" />
+
+            <!-- spiraalstap -->
+            <div class="slider-row">
+                <label for="warp-anglestep">spiraalstap (1-128):</label>
+                <span id="warp-anglestep-value">24</span>
+            </div>
+            <input type="range" id="warp-anglestep" min="1" max="128" value="24" />
+
+            <!-- kleurstap -->
+            <div class="slider-row">
+                <label for="warp-colorstep">kleurstap (1-128):</label>
+                <span id="warp-colorstep-value">12</span>
+            </div>
+            <input type="range" id="warp-colorstep" min="1" max="128" value="12" />
+
+            <!-- richting -->
+            <div class="slider-row">
+                <label for="warp-direction">richting:</label>
+                <label class="switch-lr">
+                    <input type="checkbox" id="warp-direction">
+                    <span class="slider-lr"></span>
+                </label>
+            </div>
+
+        </div>
+        <!-- FIREWORKS Controls -->
+        <div id="fwControls" class="wrapper">
+            <!-- aantal pijlen -->
+            <div class="slider-row">
+                <label for="fw-count">aantal pijlen:</label>
+                <span id="fw-count-value">2</span>
+            </div>
+            <input type="range" id="fw-count" min="1" max="10" value="2" />
+            <!-- speed -->
+            <div class="slider-row">
+                <label for="fw-speed">snelheid:</label>
+                <span id="fw-speed-value">4</span>
+            </div>
+            <input type="range" id="fw-speed" min="1" max="12" value="4" />
+            <!-- fading speed -->
+            <div class="slider-row">
+                <label for="fw-fade-speed">fade snelheid:</label>
+                <span id="fw-fade-speed-value">180</span>
+            </div>
+            <input type="range" id="fw-fade-speed" min="1" max="255" value="180" />
+            <!-- twinkle chance -->
+            <div class="slider-row">
+                <label for="fw-twinkle">vonk kans 1/n:</label>
+                <span id="fw-twinkle-value">10</span>
+            </div>
+            <input type="range" id="fw-twinkle" min="0" max="20" value="10" />
+            <!-- komeet chance -->
+            <div class="slider-row">
+                <label for="fw-comet">komeet kans 1/n:</label>
+                <span id="fw-comet-value">5</span>
+            </div>
+            <input type="range" id="fw-comet" min="0" max="20" value="5" />
+            <!-- burst chance -->
+            <div class="slider-row">
+                <label for="fw-burst">burst kans 1/n:</label>
+                <span id="fw-burst-value">80</span>
+            </div>
+            <input type="range" id="fw-burst" min="0" max="100" value="80" />
+        </div>
+        <!-- AURORA Controls -->
+        <div id="auControls" class="wrapper">
+            <!-- kleurpalet -->
+            <div class="slider-row">
+                <label for="au-palette">kleurpalet:</label>
+                <select id="au-palette"></select>
+            </div>
+            <!-- Time -->
+            <div class="slider-row">
+                <label for="au-time">time:</label>
+                <span id="au-time-value">0</span>
+            </div>
+            <input type="range" id="au-time" min="0" max="12" value="0" />
+            <!-- au speed -->
+            <div class="slider-row">
+                <label for="au-speed">snelheid:</label>
+                <span id="au-speed-value">1</span>
+            </div>
+            <input type="range" id="au-speed" min="1" max="10" value="1" />
+            <!-- au scale -->
+            <div class="slider-row">
+                <label for="au-scale">scale:</label>
+                <span id="au-scale-value">30</span>
+            </div>
+            <input type="range" id="au-scale" min="1" max="100" value="30" />
+            <!-- au yOffset -->
+            <div class="slider-row">
+                <label for="au-yoffset">offset:</label>
+                <span id="au-yoffset-value">10</span>
+            </div>
+            <input type="range" id="au-yoffset" min="1" max="100" value="10" />
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-au">helderheid (0-255):</label>
+                <span id="brightness-au-value">128</span>
+            </div>
+            <input type="range" id="brightness-au" min="0" max="255" value="128" />
+        </div>
+        <!-- CONFETTi Controls -->
+        <div id="confControls" class="wrapper">
+            <!-- density -->
+            <div class="slider-row">
+                <label for="conf-density">kans op snipper (1-255):</label>
+                <span id="conf-density-value">50</span>
+            </div>
+            <input type="range" id="conf-density" min="1" max="255" value="50" />
+            <!-- snelheid -->
+            <div class="slider-row">
+                <label for="conf-speed">snelheid (1-200):</label>
+                <span id="conf-speed-value">30</span>
+            </div>
+            <input type="range" id="conf-speed" min="1" max="200" value="30" />
+            <!-- fade -->
+            <div class="slider-row">
+                <label for="conf-fade">fade snelheid (1-200):</label>
+                <span id="conf-fade-value">100</span>
+            </div>
+            <input type="range" id="conf-fade" min="1" max="200" value="100" />
+            <!-- Saturation-->
+            <div class="slider-row">
+                <label for="conf-sat">verzadiging (0-255):</label>
+                <span id="conf-sat-value">200</span>
+            </div>
+            <input type="range" id="conf-sat" min="0" max="255" value="200" /> 
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-conf">helderheid (0-255):</label>
+                <span id="brightness-conf-value">128</span>
+            </div>
+            <input type="range" id="brightness-conf" min="0" max="255" value="128" />
+        </div>
+        <button id="start-effect">start effect</button>
+    </div>
+    
+</body>
+</html>
