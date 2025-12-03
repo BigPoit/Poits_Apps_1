@@ -256,20 +256,14 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Snake direction commands
     function sendSnakeCmd(cmd) {
-        // stuur commando naar ESP32
-        fetch(`/snake?cmd=${cmd}`)
-            .then(response => response.json())
-            .then(data => {
-                // optioneel: score of status terugkoppelen
-                if (data.score !== undefined) {
-                    const scoreElement = document.getElementById("snake-score");
-                    if (scoreElement) {
-                        scoreElement.textContent = "Score: " + data.score;
-                    }
-                }
-            })
-            .catch(err => console.error("Snake command error:", err));
+    fetch(`/snake?cmd=${cmd}`)
+        .then(response => response.text())
+        .then(text => {
+            console.log("Snake response:", text); // zou "OK" moeten zijn
+        })
+        .catch(err => console.error("Snake command error:", err));
     }
+
     // Slider updates + effectData bijwerken
     HETISynSlider.addEventListener("change", () => {
         const yn = HETISynSlider.checked ? 1 : -1;
