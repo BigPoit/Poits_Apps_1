@@ -174,7 +174,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const confSatValue = document.getElementById("conf-sat-value");
     const brightnessConfSlider = document.getElementById("brightness-conf");
     const brightnessConfValue = document.getElementById("brightness-conf-value");
-    
+    // Snake Controls
+    const snakeControls = document.getElementById("snakeControls");
+    const snakeLengthModeSlider = document.getElementById("snake-lengthmode");
+    const snakeLengthModeValue = document.getElementById("snake-lengthmode-value");
+    const brightnessSnakeSlider = document.getElementById("brightness-snake");
+    const brightnessSnakeValue = document.getElementById("brightness-snake-value");
+    const snakeTargetsSlider = document.getElementById("snake-targets");
+    const snakeTargetsValue = document.getElementById("snake-targets-value");
+
     
     const paletteOptions = [
         { value: "analogous", label: "analogous" },
@@ -245,7 +253,23 @@ document.addEventListener("DOMContentLoaded", function () {
     fillPaletteSelect(document.getElementById("au-palette"));
 
     const startButton = document.getElementById("start-effect");
-
+    
+    // Snake direction commands
+    function sendSnakeCmd(cmd) {
+        // stuur commando naar ESP32
+        fetch(`/snake?cmd=${cmd}`)
+            .then(response => response.json())
+            .then(data => {
+                // optioneel: score of status terugkoppelen
+                if (data.score !== undefined) {
+                    const scoreElement = document.getElementById("snake-score");
+                    if (scoreElement) {
+                        scoreElement.textContent = "Score: " + data.score;
+                    }
+                }
+            })
+            .catch(err => console.error("Snake command error:", err));
+    }
     // Slider updates + effectData bijwerken
     HETISynSlider.addEventListener("change", () => {
         const yn = HETISynSlider.checked ? 1 : -1;
@@ -465,6 +489,21 @@ document.addEventListener("DOMContentLoaded", function () {
         brightnessConfValue.textContent = brightnessConfSlider.value;
         if (effectData) effectData.confbrightness = parseInt(brightnessConfSlider.value, 10);
     });
+    // Snake slider updates
+    snakeLengthModeSlider.addEventListener("input", () => {
+        snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
+        if (effectData) effectData.snakeLengthMode = parseInt(snakeLengthModeSlider.value, 10);
+    });
+
+    brightnessSnakeSlider.addEventListener("input", () => {
+        brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
+        if (effectData) effectData.snakeBrightness = parseInt(brightnessSnakeSlider.value, 10);
+    });
+
+    snakeTargetsSlider.addEventListener("input", () => {
+        snakeTargetsValue.textContent = snakeTargetsSlider.value;
+        if (effectData) effectData.snakeTargetCount = parseInt(snakeTargetsSlider.value, 10);
+});
 
     // Effect selectie
     effectSelect.addEventListener("change", function () {
@@ -482,6 +521,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fwControls.style.display = effect === "FIREWORK" ? "flex" : "none";
         auControls.style.display = effect === "AURORA" ? "flex" : "none";
         confControls.style.display = effect === "CONFETTI" ? "flex" : "none";
+        snakeControls.style.display = effect === "SNAKE" ? "flex" : "none";
 
         // Waarden uit effectData zetten
         if (effectData) {
@@ -609,6 +649,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 brightnessConfSlider.value = effectData.confbrightness;
                 brightnessConfValue.textContent = brightnessConfSlider.value;
             }
+            if (effect === "SNAKE") {
+                snakeLengthModeSlider.value = effectData.snakeLengthMode;
+                snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
+                brightnessSnakeSlider.value = effectData.snakeBrightness;
+                brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
+                snakeTargetsSlider.value = effectData.snakeTargetCount;
+                snakeTargetsValue.textContent = snakeTargetsSlider.value;
+            }
         }
         // Debug: toon hele object in console
         // console.log("EffectData na change:", effectData);
@@ -682,7 +730,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 + `&confsat=${confSatSlider.value}`
                 + `&confbrightness=${brightnessConfSlider.value}`;
         }
-        
+        if (effect === "SNAKE") {
+            url += `&snakeLengthMode=${snakeLengthModeSlider.value}`
+                + `&snakeBrightness=${brightnessSnakeSlider.value}`
+                + `&snakeTargetCount=${snakeTargetsSlider.value}`;
+        }
+
         fetch(url)
             .then(res => { if (!res.ok) console.error("Effect verzenden mislukt"); })
             .catch(err => console.error("Netwerkfout bij effect:", err));

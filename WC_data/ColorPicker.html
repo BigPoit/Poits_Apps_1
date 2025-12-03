@@ -29,6 +29,7 @@
             <option value="FIREWORK">firework</option>
             <option value="AURORA">aurora</option>
             <option value="CONFETTI">confetti</option>
+            <option value="SNAKE">snake</option>
         </select>
 
         <div id="wordclockControls" class="wrapper">
@@ -386,6 +387,50 @@
                 <span id="brightness-conf-value">128</span>
             </div>
             <input type="range" id="brightness-conf" min="0" max="255" value="128" />
+        </div>
+
+        <!-- SNAKE Controls -->
+        <div id="snakeControls" class="wrapper">
+            <!-- lengte modus -->
+            <div class="slider-row">
+                <label for="snake-lengthmode">lengte modus (1=constant, 2=grow):</label>
+                <span id="snake-lengthmode-value">2</span>
+            </div>
+            <input type="range" id="snake-lengthmode" min="1" max="2" value="2" />
+
+            <!-- helderheid -->
+            <div class="slider-row">
+                <label for="brightness-snake">helderheid (0-255):</label>
+                <span id="brightness-snake-value">128</span>
+            </div>
+            <input type="range" id="brightness-snake" min="0" max="255" value="128" />
+
+            <!-- aantal targets -->
+            <div class="slider-row">
+                <label for="snake-targets">aantal targets (1-5):</label>
+                <span id="snake-targets-value">2</span>
+            </div>
+            <input type="range" id="snake-targets" min="1" max="5" value="2" />
+
+            <!-- besturing in plus-vorm -->
+            <div class="snake-controls" style="text-align:center; margin-top:10px;">
+                <div>
+                    <button onclick="sendSnakeCmd('up')">↑</button>
+                </div>
+                <div>
+                    <button onclick="sendSnakeCmd('left')">←</button>
+                    <button onclick="sendSnakeCmd('right')">→</button>
+                </div>
+                <div>
+                    <button onclick="sendSnakeCmd('down')">↓</button>
+                </div>
+                <div id="snake-score">Score: 0</div>
+            </div>
+
+            <!-- start knop -->
+            <!-- <div style="margin-top:10px;">
+                <button onclick="startSnakeEffect()">Start Snake</button>
+            </div> -->
         </div>
         <button id="start-effect">start effect</button>
     </div> 
