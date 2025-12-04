@@ -486,17 +486,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // Snake slider updates
     snakeLengthModeSlider.addEventListener("input", () => {
         snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-        if (effectData) effectData.snakeLengthMode = parseInt(snakeLengthModeSlider.value, 10);
+        if (effectData) effectData.snakelengthmode = parseInt(snakeLengthModeSlider.value, 10);
     });
 
     brightnessSnakeSlider.addEventListener("input", () => {
         brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-        if (effectData) effectData.snakeBrightness = parseInt(brightnessSnakeSlider.value, 10);
+        if (effectData) effectData.snakebrightness = parseInt(brightnessSnakeSlider.value, 10);
     });
 
     snakeTargetsSlider.addEventListener("input", () => {
         snakeTargetsValue.textContent = snakeTargetsSlider.value;
-        if (effectData) effectData.snakeTargetCount = parseInt(snakeTargetsSlider.value, 10);
+        if (effectData) effectData.snaketargetcount = parseInt(snakeTargetsSlider.value, 10);
 });
 
     // Effect selectie
@@ -644,11 +644,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 brightnessConfValue.textContent = brightnessConfSlider.value;
             }
             if (effect === "SNAKE") {
-                snakeLengthModeSlider.value = effectData.snakeLengthMode;
+                snakeLengthModeSlider.value = effectData.snakelengthmode;
                 snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-                brightnessSnakeSlider.value = effectData.snakeBrightness;
+                brightnessSnakeSlider.value = effectData.snakebrightness;
                 brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-                snakeTargetsSlider.value = effectData.snakeTargetCount;
+                snakeTargetsSlider.value = effectData.snaketargetcount;
                 snakeTargetsValue.textContent = snakeTargetsSlider.value;
             }
         }
@@ -725,7 +725,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 + `&confbrightness=${brightnessConfSlider.value}`;
         }
         if (effect === "SNAKE") {
-            url += `&snakeLengthMode=${snakeLengthModeSlider.value}`
+            url += `&snakelengthMode=${snakeLengthModeSlider.value}`
                 + `&snakeBrightness=${brightnessSnakeSlider.value}`
                 + `&snakeTargetCount=${snakeTargetsSlider.value}`;
         }
