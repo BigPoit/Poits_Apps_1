@@ -1,3 +1,13 @@
+// Snake direction commands
+    function sendSnakeCmd(cmd) {
+    fetch(`/snake?cmd=${cmd}`)
+        .then(response => response.text())
+        .then(text => {
+            console.log("Snake response:", text); // zou "OK" moeten zijn
+        })
+        .catch(err => console.error("Snake command error:", err));
+    }
+
 document.addEventListener("DOMContentLoaded", function () {
     const MAX_SIZE = 500;
     const size = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
@@ -237,7 +247,16 @@ document.addEventListener("DOMContentLoaded", function () {
         { value: "vintage_57", label: "vintage_57" }
     ];
     
-        // Vul beide dropdowns
+    // Vul de selects met opties uit het template
+    function fillPaletteSelect(selectElement) {
+        paletteOptions.forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.label;
+            selectElement.appendChild(option);
+        });
+    }
+    // Vul beide dropdowns
     fillPaletteSelect(document.getElementById("wave-palette"));
     fillPaletteSelect(document.getElementById("plasma-palette"));
     fillPaletteSelect(document.getElementById("warp-palette"));
@@ -245,16 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const startButton = document.getElementById("start-effect");
     
-    // Snake direction commands
-    function sendSnakeCmd(cmd) {
-    fetch(`/snake?cmd=${cmd}`)
-        .then(response => response.text())
-        .then(text => {
-            console.log("Snake response:", text); // zou "OK" moeten zijn
-        })
-        .catch(err => console.error("Snake command error:", err));
-    }
-
+    
     // Slider updates + effectData bijwerken
     HETISynSlider.addEventListener("change", () => {
         const yn = HETISynSlider.checked ? 1 : -1;
@@ -726,12 +736,3 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(err => console.error("Netwerkfout bij effect:", err));
     });
 });
-// Vul de selects met opties uit het template
-    function fillPaletteSelect(selectElement) {
-        paletteOptions.forEach(opt => {
-            const option = document.createElement("option");
-            option.value = opt.value;
-            option.textContent = opt.label;
-            selectElement.appendChild(option);
-        });
-    }
