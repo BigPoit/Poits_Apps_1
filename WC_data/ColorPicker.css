@@ -155,6 +155,17 @@ label {
     border-radius: 50%;
     transition: .4s;
 }
+.snake-controls {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.snake-controls button {
+    font-size: 1.5rem;   /* grotere pijlen */
+    margin: 5px;         /* ruimte tussen knoppen */
+    padding: 10px 15px;  /* klikbare oppervlakte */
+    cursor: pointer;
+}
 
 input:not(:checked) + .slider-lr {
     background-color: #c33;
