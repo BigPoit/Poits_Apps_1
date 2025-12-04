@@ -237,16 +237,7 @@ document.addEventListener("DOMContentLoaded", function () {
         { value: "vintage_57", label: "vintage_57" }
     ];
     
-    // Vul de selects met opties uit het template
-    function fillPaletteSelect(selectElement) {
-        paletteOptions.forEach(opt => {
-            const option = document.createElement("option");
-            option.value = opt.value;
-            option.textContent = opt.label;
-            selectElement.appendChild(option);
-        });
-    }
-    // Vul beide dropdowns
+        // Vul beide dropdowns
     fillPaletteSelect(document.getElementById("wave-palette"));
     fillPaletteSelect(document.getElementById("plasma-palette"));
     fillPaletteSelect(document.getElementById("warp-palette"));
@@ -735,3 +726,12 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(err => console.error("Netwerkfout bij effect:", err));
     });
 });
+// Vul de selects met opties uit het template
+    function fillPaletteSelect(selectElement) {
+        paletteOptions.forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.label;
+            selectElement.appendChild(option);
+        });
+    }
