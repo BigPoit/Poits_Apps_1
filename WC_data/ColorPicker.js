@@ -1,50 +1,82 @@
-// Snake direction commands
-    function sendSnakeCmd(cmd) {
-    fetch(`/snake?cmd=${cmd}`)
-        .then(response => response.text())
-        .then(text => {
-            console.log("Snake response:", text); // zou "OK" moeten zijn
-        })
-        .catch(err => console.error("Snake command error:", err));
+﻿// ===========================
+// WebSocket setup and helpers
+// ===========================
+
+let wsSnake;
+let effectData = null; // optional local cache for UI sync
+
+function connectSnake() {
+    wsSnake = new WebSocket("ws://" + window.location.host + "/snake");
+
+    wsSnake.onopen = () => {
+        console.log("WebSocket connected");
+        const scoreEl = document.getElementById("snake-score");
+        if (scoreEl) scoreEl.textContent = "Score: 0 (connected)";
+        // request current state if server supports it
+        try {
+            wsSnake.send("getstate");
+        } catch (e) { }
+    };
+
+    wsSnake.onclose = () => {
+        console.log("WebSocket disconnected");
+        const scoreEl = document.getElementById("snake-score");
+        if (scoreEl) scoreEl.textContent = "Score: ? (disconnected)";
+        setTimeout(connectSnake, 3000);
+    };
+
+    wsSnake.onmessage = (event) => {
+        // Basic message handling: score updates or JSON state
+        const msg = event.data;
+        if (typeof msg === "string" && msg.startsWith("score:")) {
+            const scoreEl = document.getElementById("snake-score");
+            if (scoreEl) scoreEl.textContent = "Score: " + msg.split(":")[1];
+            return;
+        }
+        // If server sends JSON state, sync UI
+        try {
+            const data = JSON.parse(msg);
+            effectData = data;
+            syncUIFromEffectData();
+        } catch (e) {
+            console.log("Server message:", msg);
+        }
+    };
+}
+
+function wsSendText(text) {
+    if (wsSnake && wsSnake.readyState === WebSocket.OPEN) {
+        wsSnake.send(text);
+    } else {
+        console.warn("WebSocket not connected, cannot send:", text);
     }
+}
+
+function wsSendJSON(payload) {
+    if (wsSnake && wsSnake.readyState === WebSocket.OPEN) {
+        wsSnake.send(JSON.stringify(payload));
+    } else {
+        console.error("WebSocket not connected, cannot send JSON:", payload);
+    }
+}
+
+// =====================================
+// DOM elements, color picker and palettes
+// =====================================
 
 document.addEventListener("DOMContentLoaded", function () {
     const MAX_SIZE = 500;
     const size = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
 
-    let effectData = null; // opslag voor serverwaarden en updates
-
+    // Color picker
     const colorPicker = new iro.ColorPicker("#picker", {
         width: size,
         color: "#ffffff",
         layout: [
             { component: iro.ui.Wheel },
-            { component: iro.ui.Slider, options: { sliderType: 'value' } }
-        ]
+            { component: iro.ui.Slider, options: { sliderType: "value" } },
+        ],
     });
-
-    // Kleur ophalen
-    fetch("/getcolor")
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.r !== undefined) {
-                colorPicker.color.rgb = { r: data.r, g: data.g, b: data.b };
-            }
-        })
-        .catch(err => console.warn("Geen kleur ontvangen:", err));
-
-    const effectSelect = document.getElementById("effect");
-
-    // Effect ophalen
-    fetch("/geteffect")
-        .then(res => res.json())
-        .then(data => {
-            if (!data) return;
-            effectData = data;
-            effectSelect.value = data.effect;
-            effectSelect.dispatchEvent(new Event("change"));
-        })
-        .catch(err => console.warn("Geen effectgegevens ontvangen:", err));
 
     window.addEventListener("resize", () => {
         const newSize = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
@@ -54,13 +86,10 @@ document.addEventListener("DOMContentLoaded", function () {
     colorPicker.on("color:change", function (color) {
         const { r, g, b } = color.rgb;
         document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-        fetch(`/setcolor?r=${r}&g=${g}&b=${b}`)
-            .then(res => { if (!res.ok) console.error("Kleur verzenden mislukt"); })
-            .catch(err => console.error("Netwerkfout:", err));
+        wsSendText(`color:${r},${g},${b}`);
     });
 
-    // Elementen
+    // Elements
     const HETISynSlider = document.getElementById("HETIS-yn");
 
     const scrollOptions = document.getElementById("scroll-options");
@@ -184,7 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const confSatValue = document.getElementById("conf-sat-value");
     const brightnessConfSlider = document.getElementById("brightness-conf");
     const brightnessConfValue = document.getElementById("brightness-conf-value");
-    // Snake Controls
+
     const snakeControls = document.getElementById("snakeControls");
     const snakeLengthModeSlider = document.getElementById("snake-lengthmode");
     const snakeLengthModeValue = document.getElementById("snake-lengthmode-value");
@@ -193,7 +222,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const snakeTargetsSlider = document.getElementById("snake-targets");
     const snakeTargetsValue = document.getElementById("snake-targets-value");
 
-    
+    const effectSelect = document.getElementById("effect");
+    const startButton = document.getElementById("start-effect");
+
+    // Palettes
     const paletteOptions = [
         { value: "analogous", label: "analogous" },
         { value: "aurora_green", label: "aurora_green" },
@@ -244,266 +276,171 @@ document.addEventListener("DOMContentLoaded", function () {
         { value: "sunrise", label: "sunrise" },
         { value: "sunset", label: "sunset" },
         { value: "vintage_01", label: "vintage_01" },
-        { value: "vintage_57", label: "vintage_57" }
+        { value: "vintage_57", label: "vintage_57" },
     ];
-    
-    // Vul de selects met opties uit het template
+
     function fillPaletteSelect(selectElement) {
-        paletteOptions.forEach(opt => {
+        paletteOptions.forEach((opt) => {
             const option = document.createElement("option");
             option.value = opt.value;
             option.textContent = opt.label;
             selectElement.appendChild(option);
         });
     }
-    // Vul beide dropdowns
-    fillPaletteSelect(document.getElementById("wave-palette"));
-    fillPaletteSelect(document.getElementById("plasma-palette"));
-    fillPaletteSelect(document.getElementById("warp-palette"));
-    fillPaletteSelect(document.getElementById("au-palette"));
 
-    const startButton = document.getElementById("start-effect");
-    
-    
-    // Slider updates + effectData bijwerken
+    fillPaletteSelect(wavePalette);
+    fillPaletteSelect(plasmaPalette);
+    fillPaletteSelect(warpPalette);
+    fillPaletteSelect(auPalette);
+
+    // ===========================
+    // UI event bindings (WebSocket)
+    // ===========================
+
+    // Generic slider helper
+    function attachSlider(slider, valueEl, key) {
+        slider.addEventListener("input", () => {
+            valueEl.textContent = slider.value;
+            if (effectData) effectData[key] = parseInt(slider.value, 10);
+            wsSendText(`${key}:${slider.value}`);
+        });
+    }
+
+    // Snake direction buttons from HTML use sendSnakeCmd()
+    window.sendSnakeCmd = function (cmd) {
+        wsSendText(cmd);
+    };
+
+    // WORDCLOCK
     HETISynSlider.addEventListener("change", () => {
         const yn = HETISynSlider.checked ? 1 : -1;
         if (effectData) effectData.hetisyn = yn;
+        wsSendText(`hetisyn:${yn}`);
     });
 
+    // SCROLLMESSAGE
     scrollText.addEventListener("input", () => {
         if (effectData) effectData.scrtext = scrollText.value;
+        wsSendText(`scrtext:${encodeURIComponent(scrollText.value)}`);
     });
     scrollDuration.addEventListener("input", () => {
-        if (effectData) effectData.scrduration = parseInt(scrollDuration.value, 10);
+        const v = parseInt(scrollDuration.value, 10);
+        if (effectData) effectData.scrduration = v;
+        wsSendText(`scrduration:${v}`);
     });
-    scrollSpeedSlider.addEventListener("input", () => {
-        scrollSpeedValue.textContent = scrollSpeedSlider.value;
-        if (effectData) effectData.scrspeed = parseInt(scrollSpeedSlider.value, 10);
-    });
+    attachSlider(scrollSpeedSlider, scrollSpeedValue, "scrspeed");
 
-    rainbowSpeedSlider.addEventListener("input", () => {
-        rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
-        if (effectData) effectData.rnbspeed = parseInt(rainbowSpeedSlider.value, 10);
-    });
-    brightnessRainbowSlider.addEventListener("input", () => {
-        brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
-        if (effectData) effectData.rnbbrightness = parseInt(brightnessRainbowSlider.value, 10);
-    });
+    // RAINBOW
+    attachSlider(rainbowSpeedSlider, rainbowSpeedValue, "rnbspeed");
+    attachSlider(brightnessRainbowSlider, brightnessRainbowValue, "rnbbrightness");
 
-    matrixSpeedSlider.addEventListener("input", () => {
-        matrixSpeedValue.textContent = matrixSpeedSlider.value;
-        if (effectData) effectData.mtrxspeed = parseInt(matrixSpeedSlider.value, 10);
-    });
-    brightnessMatrixSlider.addEventListener("input", () => {
-        brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
-        if (effectData) effectData.mtrxbrightness = parseInt(brightnessMatrixSlider.value, 10);
-    });
+    // MATRIX_RAIN
+    attachSlider(matrixSpeedSlider, matrixSpeedValue, "mtrxspeed");
+    attachSlider(brightnessMatrixSlider, brightnessMatrixValue, "mtrxbrightness");
     matrixTrail.addEventListener("input", () => {
-        if (effectData) effectData.matrixtrail = parseInt(matrixTrail.value, 10);
+        const v = parseInt(matrixTrail.value, 10);
+        if (effectData) effectData.matrixtrail = v;
+        wsSendText(`mtrxtrail:${v}`);
     });
 
-    fireSpeedSlider.addEventListener("input", () => {
-        fireSpeedValue.textContent = fireSpeedSlider.value;
-        if (effectData) effectData.firespeed = parseInt(fireSpeedSlider.value, 10);
-    });
-    fireIntensitySlider.addEventListener("input", () => {
-        fireIntensityValue.textContent = fireIntensitySlider.value;
-        if (effectData) effectData.fireintensity = parseInt(fireIntensitySlider.value, 10);
-    });
-    brightnessFireSlider.addEventListener("input", () => {
-        brightnessFireValue.textContent = brightnessFireSlider.value;
-        if (effectData) effectData.firebrightness = parseInt(brightnessFireSlider.value, 10);
-    });
+    // FIRE
+    attachSlider(fireSpeedSlider, fireSpeedValue, "firespeed");
+    attachSlider(fireIntensitySlider, fireIntensityValue, "fireintensity");
+    attachSlider(brightnessFireSlider, brightnessFireValue, "firebrightness");
+
+    // WAVES
     wavePalette.addEventListener("change", () => {
         if (effectData) effectData.wavepalette = wavePalette.value;
+        wsSendText(`wavepalette:${wavePalette.value}`);
     });
-    waveSpeedSlider.addEventListener("input", () => {
-        waveSpeedValue.textContent = waveSpeedSlider.value;
-        if (effectData) effectData.wavespeed = parseInt(waveSpeedSlider.value, 10);
-    });
-    waveScrollSlider.addEventListener("input", () => {
-        waveScrollValue.textContent = waveScrollSlider.value;
-        if (effectData) effectData.wavescroll = parseInt(waveScrollSlider.value, 10);
-    });
-    waveColorSpeedSlider.addEventListener("input", () => {
-        waveColorSpeedValue.textContent = waveColorSpeedSlider.value;
-        if (effectData) effectData.wavecolorspeed = parseInt(waveColorSpeedSlider.value, 10);
-    });
-    brightnessWaveSlider.addEventListener("input", () => {
-        brightnessWaveValue.textContent = brightnessWaveSlider.value;
-        if (effectData) effectData.wavebrightness = parseInt(brightnessWaveSlider.value, 10);
-    });
+    attachSlider(waveSpeedSlider, waveSpeedValue, "wavespeed");
+    attachSlider(waveScrollSlider, waveScrollValue, "wavescroll");
+    attachSlider(waveColorSpeedSlider, waveColorSpeedValue, "wavecolorspeed");
+    attachSlider(brightnessWaveSlider, brightnessWaveValue, "wavebrightness");
+
+    // PLASMA
     plasmaPalette.addEventListener("change", () => {
         if (effectData) effectData.plasmapalette = plasmaPalette.value;
+        wsSendText(`plasmapalette:${plasmaPalette.value}`);
     });
-    plasmaSpeedSlider.addEventListener("input", () => {
-        plasmaSpeedValue.textContent = plasmaSpeedSlider.value;
-        if (effectData) effectData.plasmaspeed = parseInt(plasmaSpeedSlider.value, 10);
-    });
-    plasmaScaleSlider.addEventListener("input", () => {
-        plasmaScaleValue.textContent = plasmaScaleSlider.value;
-        if (effectData) effectData.plasmascale = parseInt(plasmaScaleSlider.value, 10);
-    });
-    brightnessPlasmaSlider.addEventListener("input", () => {
-        brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
-        if (effectData) effectData.plasmabrightness = parseInt(brightnessPlasmaSlider.value, 10);
-    });
+    attachSlider(plasmaSpeedSlider, plasmaSpeedValue, "plasmaspeed");
+    attachSlider(plasmaScaleSlider, plasmaScaleValue, "plasmascale");
+    attachSlider(brightnessPlasmaSlider, brightnessPlasmaValue, "plasmabrightness");
 
-    snowSpeedSlider.addEventListener("input", () => {
-        snowSpeedValue.textContent = snowSpeedSlider.value;
-        if (effectData) effectData.snowspeed = parseInt(snowSpeedSlider.value, 10);
-    });
-    snowCountSlider.addEventListener("input", () => {
-        snowCountValue.textContent = snowCountSlider.value;
-        if (effectData) effectData.snowcount = parseInt(snowCountSlider.value, 10);
-    });
-    snowWindSlider.addEventListener("input", () => {
-        snowWindValue.textContent = snowWindSlider.value;
-        if (effectData) effectData.snowwind = parseInt(snowWindSlider.value, 10);
-    });
-    brightnessSnowSlider.addEventListener("input", () => {
-        brightnessSnowValue.textContent = brightnessSnowSlider.value;
-        if (effectData) effectData.snowbrightness = parseInt(brightnessSnowSlider.value, 10);
-    });
+    // SNOW
+    attachSlider(snowSpeedSlider, snowSpeedValue, "snowspeed");
+    attachSlider(snowCountSlider, snowCountValue, "snowcount");
+    attachSlider(snowWindSlider, snowWindValue, "snowwind");
+    attachSlider(brightnessSnowSlider, brightnessSnowValue, "snowbrightness");
 
-    starsCountSlider.addEventListener("input", () => {
-        starsCountValue.textContent = starsCountSlider.value;
-        if (effectData) effectData.starscount = parseInt(starsCountSlider.value, 10);
-    });
-    starsDimTimeSlider.addEventListener("input", () => {
-        starsDimTimeValue.textContent = starsDimTimeSlider.value;
-        if (effectData) effectData.starsdimtime = parseInt(starsDimTimeSlider.value, 10);
-    });
-    starsAppSpeedSlider.addEventListener("input", () => {
-        starsAppSpeedValue.textContent = starsAppSpeedSlider.value;
-        if (effectData) effectData.starsappspeed = parseInt(starsAppSpeedSlider.value, 10);
-    });
-    starsColorModeSlider.addEventListener("input", () => {
-        starsColorModeValue.textContent = starsColorModeSlider.value;
-        if (effectData) effectData.starscolormode = parseInt(starsColorModeSlider.value, 10);
-    });
-    brightnessStarsSlider.addEventListener("input", () => {
-        brightnessStarsValue.textContent = brightnessStarsSlider.value;
-        if (effectData) effectData.starsbrightness = parseInt(brightnessStarsSlider.value, 10);
-    });
+    // STARS
+    attachSlider(starsCountSlider, starsCountValue, "starscount");
+    attachSlider(starsDimTimeSlider, starsDimTimeValue, "starsdimtime");
+    attachSlider(starsAppSpeedSlider, starsAppSpeedValue, "starsappspeed");
+    attachSlider(starsColorModeSlider, starsColorModeValue, "starscolormode");
+    attachSlider(brightnessStarsSlider, brightnessStarsValue, "starsbrightness");
 
+    // WARP
     warpPalette.addEventListener("change", () => {
         if (effectData) effectData.warppalette = warpPalette.value;
+        wsSendText(`warppalette:${warpPalette.value}`);
     });
-    warpSpeedSlider.addEventListener("input", () => {
-        warpSpeedValue.textContent = warpSpeedSlider.value;
-        if (effectData) effectData.warpspeed = parseInt(warpSpeedSlider.value, 10);
-    });
-    brightnessWarpSlider.addEventListener("input", () => {
-        brightnessWarpValue.textContent = brightnessWarpSlider.value;
-        if (effectData) effectData.warpbrightness = parseInt(brightnessWarpSlider.value, 10);
-    });
-    warpAngleStepSlider.addEventListener("input", () => {
-        warpAngleStepValue.textContent = warpAngleStepSlider.value;
-        if (effectData) effectData.warpanglestep = parseInt(warpAngleStepSlider.value, 10);
-    });
-    warpColorStepSlider.addEventListener("input", () => {
-        warpColorStepValue.textContent = warpColorStepSlider.value;
-        if (effectData) effectData.warpcolorstep = parseInt(warpColorStepSlider.value, 10);
-    });
+    attachSlider(warpSpeedSlider, warpSpeedValue, "warpspeed");
+    attachSlider(brightnessWarpSlider, brightnessWarpValue, "warpbrightness");
+    attachSlider(warpAngleStepSlider, warpAngleStepValue, "warpanglestep");
+    attachSlider(warpColorStepSlider, warpColorStepValue, "warpcolorstep");
     warpDirectionSlider.addEventListener("change", () => {
         const dir = warpDirectionSlider.checked ? 1 : -1;
         if (effectData) effectData.warpdirection = dir;
+        wsSendText(`warpdirection:${dir}`);
     });
     warpMode.addEventListener("change", () => {
-        if (effectData) effectData.warpmode = parseInt(warpMode.value, 10);
+        const v = parseInt(warpMode.value, 10);
+        if (effectData) effectData.warpmode = v;
+        wsSendText(`warpmode:${v}`);
     });
 
-    fwCountSlider.addEventListener("input", () => {
-        fwCountValue.textContent = fwCountSlider.value;
-        if (effectData) effectData.fwcount = parseInt(fwCountSlider.value, 10);
-    });
-    fwSpeedSlider.addEventListener("input", () => {
-        fwSpeedValue.textContent = fwSpeedSlider.value;
-        if (effectData) effectData.fwspeed = parseInt(fwSpeedSlider.value, 10);
-    });
-    fwFadeSpeedSlider.addEventListener("input", () => {
-        fwFadeSpeedValue.textContent = fwFadeSpeedSlider.value;
-        if (effectData) effectData.fwfadespeed = parseInt(fwFadeSpeedSlider.value, 10);
-    });
-    fwTwinkleSlider.addEventListener("input", () => {
-        fwTwinkleValue.textContent = fwTwinkleSlider.value;
-        if (effectData) effectData.fwtwinkle = parseInt(fwTwinkleSlider.value, 10);
-    });
-    fwCometSlider.addEventListener("input", () => {
-        fwCometValue.textContent = fwCometSlider.value;
-        if (effectData) effectData.fwcomet = parseInt(fwCometSlider.value, 10);
-    });
-    fwBurstSlider.addEventListener("input", () => {
-        fwBurstValue.textContent = fwBurstSlider.value;
-        if (effectData) effectData.fwburst = parseInt(fwBurstSlider.value, 10);
-    });
+    // FIREWORK
+    attachSlider(fwCountSlider, fwCountValue, "fwcount");
+    attachSlider(fwSpeedSlider, fwSpeedValue, "fwspeed");
+    attachSlider(fwFadeSpeedSlider, fwFadeSpeedValue, "fwfadespeed");
+    attachSlider(fwTwinkleSlider, fwTwinkleValue, "fwtwinkle");
+    attachSlider(fwCometSlider, fwCometValue, "fwcomet");
+    attachSlider(fwBurstSlider, fwBurstValue, "fwburst");
 
+    // AURORA
     auPalette.addEventListener("change", () => {
         if (effectData) effectData.aupalette = auPalette.value;
+        wsSendText(`aupalette:${auPalette.value}`);
     });
-    auTimeSlider.addEventListener("input", () => {
-        auTimeValue.textContent = auTimeSlider.value;
-        if (effectData) effectData.autime = parseInt(auTimeSlider.value, 10);
-    });
-    auSpeedSlider.addEventListener("input", () => {
-        auSpeedValue.textContent = auSpeedSlider.value;
-        if (effectData) effectData.auspeed = parseInt(auSpeedSlider.value, 10);
-    });
-    auScaleSlider.addEventListener("input", () => {
-        auScaleValue.textContent = auScaleSlider.value;
-        if (effectData) effectData.auscale = parseInt(auScaleSlider.value, 10);
-    });
-    auYoffsetSlider.addEventListener("input", () => {
-        auYoffsetValue.textContent = auYoffsetSlider.value;
-        if (effectData) effectData.auyoffset = parseInt(auYoffsetSlider.value, 10);
-    });
-    brightnessAuSlider.addEventListener("input", () => {
-        brightnessAuValue.textContent = brightnessAuSlider.value;
-        if (effectData) effectData.aubrightness = parseInt(brightnessAuSlider.value, 10);
-    });
+    attachSlider(auTimeSlider, auTimeValue, "autime");
+    attachSlider(auSpeedSlider, auSpeedValue, "auspeed");
+    attachSlider(auScaleSlider, auScaleValue, "auscale");
+    attachSlider(auYoffsetSlider, auYoffsetValue, "auyoffset");
+    attachSlider(brightnessAuSlider, brightnessAuValue, "aubrightness");
 
-    confDensitySlider.addEventListener("input", () => {
-        confDensityValue.textContent = confDensitySlider.value;
-        if (effectData) effectData.confdensity = parseInt(confDensitySlider.value, 10);
-    });
-    confSpeedSlider.addEventListener("input", () => {
-        confSpeedValue.textContent = confSpeedSlider.value;
-        if (effectData) effectData.confspeed = parseInt(confSpeedSlider.value, 10);
-    });
-    confFadeSlider.addEventListener("input", () => {
-        confFadeValue.textContent = confFadeSlider.value;
-        if (effectData) effectData.conffade = parseInt(confFadeSlider.value, 10);
-    });
-    confSatSlider.addEventListener("input", () => {
-        confSatValue.textContent = confSatSlider.value;
-        if (effectData) effectData.confsat = parseInt(confSatSlider.value, 10);
-    });
-    brightnessConfSlider.addEventListener("input", () => {
-        brightnessConfValue.textContent = brightnessConfSlider.value;
-        if (effectData) effectData.confbrightness = parseInt(brightnessConfSlider.value, 10);
-    });
-    // Snake slider updates
-    snakeLengthModeSlider.addEventListener("input", () => {
-        snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-        if (effectData) effectData.snakelengthmode = parseInt(snakeLengthModeSlider.value, 10);
-    });
+    // CONFETTI
+    attachSlider(confDensitySlider, confDensityValue, "confdensity");
+    attachSlider(confSpeedSlider, confSpeedValue, "confspeed");
+    attachSlider(confFadeSlider, confFadeValue, "conffade");
+    attachSlider(confSatSlider, confSatValue, "confsat");
+    attachSlider(brightnessConfSlider, brightnessConfValue, "confbrightness");
 
-    brightnessSnakeSlider.addEventListener("input", () => {
-        brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-        if (effectData) effectData.snakebrightness = parseInt(brightnessSnakeSlider.value, 10);
-    });
+    // SNAKE effect sliders
+    attachSlider(snakeLengthModeSlider, snakeLengthModeValue, "snakelengthmode");
+    attachSlider(brightnessSnakeSlider, brightnessSnakeValue, "snakebrightness");
+    attachSlider(snakeTargetsSlider, snakeTargetsValue, "snaketargetcount");
 
-    snakeTargetsSlider.addEventListener("input", () => {
-        snakeTargetsValue.textContent = snakeTargetsSlider.value;
-        if (effectData) effectData.snaketargetcount = parseInt(snakeTargetsSlider.value, 10);
-});
+    // ===========================
+    // Effect selection and UI toggling
+    // ===========================
 
-    // Effect selectie
     effectSelect.addEventListener("change", function () {
         const effect = this.value;
-        wordclockControls.style.display = effect === "WORDCLOCK" ? "flex" : "none";
+
+        // Show/hide controls
+        const wordclockControls = document.getElementById("wordclockControls");
+        if (wordclockControls) wordclockControls.style.display = effect === "WORDCLOCK" ? "flex" : "none";
         scrollOptions.style.display = effect === "SCROLLMESSAGE" ? "flex" : "none";
         rainbowControls.style.display = effect === "RAINBOW" ? "flex" : "none";
         matrixControls.style.display = effect === "MATRIX_RAIN" ? "flex" : "none";
@@ -518,221 +455,253 @@ document.addEventListener("DOMContentLoaded", function () {
         confControls.style.display = effect === "CONFETTI" ? "flex" : "none";
         snakeControls.style.display = effect === "SNAKE" ? "flex" : "none";
 
-        // Waarden uit effectData zetten
-        if (effectData) {
-            if (effect === "WORDCLOCK") { 
-                HETISynSlider.checked = (effectData.hetisyn === 1);
-            }
-            if (effect === "SCROLLMESSAGE") {
-                scrollText.value = effectData.scrtext;
-                scrollDuration.value = effectData.scrduration;
-                scrollSpeedSlider.value = effectData.scrspeed;
-                scrollSpeedValue.textContent = scrollSpeedSlider.value;
-            }
-            if (effect === "RAINBOW") {
-                rainbowSpeedSlider.value = effectData.rnbspeed;
-                rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
-                brightnessRainbowSlider.value = effectData.rnbbrightness;
-                brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
-            }
-            if (effect === "MATRIX_RAIN") {
-                matrixSpeedSlider.value = effectData.mtrxspeed;
-                matrixSpeedValue.textContent = matrixSpeedSlider.value;
-                brightnessMatrixSlider.value = effectData.mtrxbrightness;
-                brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
-                matrixTrail.textContent = effectData.mtrxtrail;
-            }
-            if (effect === "FIRE") {
-                fireSpeedSlider.value = effectData.firespeed;
-                fireSpeedValue.textContent = fireSpeedSlider.value;
-                fireIntensitySlider.value = effectData.fireintensity;
-                fireIntensityValue.textContent = fireIntensitySlider.value;
-                brightnessFireSlider.value = effectData.firebrightness;
-                brightnessFireValue.textContent = brightnessFireSlider.value;
-            }
-            if (effect === "WAVES") {
-                wavePalette.value = effectData.wavepalette;
-                waveSpeedSlider.value = effectData.wavespeed;
-                waveSpeedValue.textContent = waveSpeedSlider.value;
-                waveScrollSlider.value = effectData.wavescroll;
-                waveScrollValue.textContent = waveScrollSlider.value;
-                waveColorSpeedSlider.value = effectData.wavecolorspeed;
-                waveColorSpeedValue.textContent = waveColorSpeedSlider.value;
-                brightnessWaveSlider.value = effectData.wavebrightness;
-                brightnessWaveValue.textContent = brightnessWaveSlider.value;
-            }
-            if (effect === "PLASMA") {
-                plasmaPalette.value = effectData.plasmapalette;
-                plasmaSpeedSlider.value = effectData.plasmaspeed;
-                plasmaSpeedValue.textContent = plasmaSpeedSlider.value;
-                plasmaScaleSlider.value = effectData.plasmascale;
-                plasmaScaleValue.textContent = plasmaScaleSlider.value;
-                brightnessPlasmaSlider.value = effectData.plasmabrightness;
-                brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
-            }
-            if (effect === "SNOW") {
-                snowSpeedSlider.value = effectData.snowspeed;
-                snowSpeedValue.textContent = snowSpeedSlider.value;
-                snowCountSlider.value = effectData.snowcount;
-                snowCountValue.textContent = snowCountSlider.value;
-                snowWindSlider.value = effectData.snowwind;
-                snowWindValue.textContent = snowWindSlider.value;
-                brightnessSnowSlider.value = effectData.snowbrightness;
-                brightnessSnowValue.textContent = brightnessSnowSlider.value;
-            }
-            if (effect === "STARS") {
-                starsCountSlider.value = effectData.starscount;
-                starsCountValue.textContent = starsCountSlider.value;
-                starsDimTimeSlider.value = effectData.starsdimtime;
-                starsDimTimeValue.textContent = starsDimTimeSlider.value;
-                starsAppSpeedSlider.value = effectData.starsappspeed;
-                starsAppSpeedValue.textContent = starsAppSpeedSlider.value;
-                starsColorModeSlider.value = effectData.starscolormode;
-                starsColorModeValue.textContent = starsColorModeSlider.value;
-                brightnessStarsSlider.value = effectData.starsbrightness;
-                brightnessStarsValue.textContent = brightnessStarsSlider.value;
-            }
-            if (effect === "WARP") {
-                warpPalette.value = effectData.warppalette;
-                warpSpeedSlider.value = effectData.warpspeed;
-                warpSpeedValue.textContent = warpSpeedSlider.value;
-                brightnessWarpSlider.value = effectData.warpbrightness;
-                brightnessWarpValue.textContent = brightnessWarpSlider.value;
-                warpAngleStepSlider.value = effectData.warpanglestep;
-                warpAngleStepValue.textContent = warpAngleStepSlider.value;
-                warpColorStepSlider.value = effectData.warpcolorstep;
-                warpColorStepValue.textContent = warpColorStepSlider.value;
-                warpDirectionSlider.checked = (effectData.warpdirection === 1);
-                warpMode.value = effectData.warpmode;
-            }
-            if (effect === "FIREWORK") {
-                fwCountSlider.value = effectData.fwcount;
-                fwCountValue.textContent = fwCountSlider.value;
-                fwSpeedSlider.value = effectData.fwspeed;
-                fwSpeedValue.textContent = fwSpeedSlider.value;
-                fwFadeSpeedSlider.value = effectData.fwfadespeed;
-                fwFadeSpeedValue.textContent = fwFadeSpeedSlider.value;
-                fwTwinkleSlider.value = effectData.fwtwinkle;
-                fwTwinkleValue.textContent = fwTwinkleSlider.value;
-                fwCometSlider.value = effectData.fwcomet;
-                fwCometValue.textContent = fwCometSlider.value;
-                fwBurstSlider.value = effectData.fwburst;
-                fwBurstValue.textContent = fwBurstSlider.value;
-            }
-            if (effect === "AURORA") {
-                auPalette.value = effectData.aupalette;
-                auTimeSlider.value = effectData.autime;
-                auTimeValue.textContent = auTimeSlider.value;
-                auSpeedSlider.value = effectData.auspeed;
-                auSpeedValue.textContent = auSpeedSlider.value;     
-                auScaleSlider.value = effectData.auscale;
-                auScaleValue.textContent = auScaleSlider.value;
-                auYoffsetSlider.value = effectData.auyoffset;
-                auYoffsetValue.textContent = auYoffsetSlider.value;
-                brightnessAuSlider.value = effectData.aubrightness;
-                brightnessAuValue.textContent = brightnessAuSlider.value;
-            }
-            if (effect === "CONFETTI") {
-                confDensitySlider.value = effectData.confdensity;
-                confDensityValue.textContent = confDensitySlider.value;
-                confSpeedSlider.value = effectData.confspeed;
-                confSpeedValue.textContent = confSpeedSlider.value;
-                confFadeSlider.value = effectData.conffade;
-                confFadeValue.textContent = confFadeSlider.value;
-                confSatSlider.value = effectData.confsat;
-                confSatValue.textContent = confSatSlider.value;
-                brightnessConfSlider.value = effectData.confbrightness;
-                brightnessConfValue.textContent = brightnessConfSlider.value;
-            }
-            if (effect === "SNAKE") {
-                snakeLengthModeSlider.value = effectData.snakelengthmode;
-                snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-                brightnessSnakeSlider.value = effectData.snakebrightness;
-                brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-                snakeTargetsSlider.value = effectData.snaketargetcount;
-                snakeTargetsValue.textContent = snakeTargetsSlider.value;
-            }
-        }
-        // Debug: toon hele object in console
-        // console.log("EffectData na change:", effectData);
-        console.table(effectData);
+        // Push effect selection to server
+        wsSendText(`effect:${effect}`);
+
+        // Sync UI values from effectData if available
+        syncUIFromEffectData();
     });
 
-    // Startknop
+    // ===========================
+    // Start button → send JSON payload
+    // ===========================
+
     startButton.addEventListener("click", function () {
         const effect = effectSelect.value;
-        let url = `/seteffect?effect=${effect}`;
+        const payload = { effect };
 
         if (effect === "WORDCLOCK") {
-            const yn = HETISynSlider.checked ? 1 : -1;
-            url += `&hetisyn=${yn}`
+            payload.hetisyn = HETISynSlider.checked ? 1 : -1;
         }
         if (effect === "SCROLLMESSAGE") {
-            url += `&scrtext=${encodeURIComponent(scrollText.value)}&scrduration=${scrollDuration.value}&scrspeed=${scrollSpeedSlider.value}`;
+            payload.scrtext = scrollText.value;
+            payload.scrduration = parseInt(scrollDuration.value, 10);
+            payload.scrspeed = parseInt(scrollSpeedSlider.value, 10);
         }
         if (effect === "RAINBOW") {
-            url += `&rnbspeed=${rainbowSpeedSlider.value}&rnbbrightness=${brightnessRainbowSlider.value}`;
+            payload.rnbspeed = parseInt(rainbowSpeedSlider.value, 10);
+            payload.rnbbrightness = parseInt(brightnessRainbowSlider.value, 10);
         }
         if (effect === "MATRIX_RAIN") {
-            url += `&mtrxbrightness=${brightnessMatrixSlider.value}&mtrxspeed=${matrixSpeedSlider.value}&mtrxtrail=${matrixTrail.value}`;
+            payload.mtrxspeed = parseInt(matrixSpeedSlider.value, 10);
+            payload.mtrxbrightness = parseInt(brightnessMatrixSlider.value, 10);
+            payload.mtrxtrail = parseInt(matrixTrail.value, 10);
         }
         if (effect === "FIRE") {
-            url += `&firespeed=${fireSpeedSlider.value}&fireintensity=${fireIntensitySlider.value}&firebrightness=${brightnessFireSlider.value}`;
+            payload.firespeed = parseInt(fireSpeedSlider.value, 10);
+            payload.fireintensity = parseInt(fireIntensitySlider.value, 10);
+            payload.firebrightness = parseInt(brightnessFireSlider.value, 10);
         }
         if (effect === "WAVES") {
-            url += `&wavepalette=${wavePalette.value}&wavespeed=${waveSpeedSlider.value}&wavescroll=${waveScrollSlider.value}&waveColorSpeed=${waveColorSpeedSlider.value}&wavebrightness=${brightnessWaveSlider.value}`;
+            payload.wavepalette = wavePalette.value;
+            payload.wavespeed = parseInt(waveSpeedSlider.value, 10);
+            payload.wavescroll = parseInt(waveScrollSlider.value, 10);
+            payload.wavecolorspeed = parseInt(waveColorSpeedSlider.value, 10);
+            payload.wavebrightness = parseInt(brightnessWaveSlider.value, 10);
         }
         if (effect === "PLASMA") {
-            url += `&plasmapalette=${plasmaPalette.value}&plasmaspeed=${plasmaSpeedSlider.value}&plasmascale=${plasmaScaleSlider.value}&plasmabrightness=${brightnessPlasmaSlider.value}`;
+            payload.plasmapalette = plasmaPalette.value;
+            payload.plasmaspeed = parseInt(plasmaSpeedSlider.value, 10);
+            payload.plasmascale = parseInt(plasmaScaleSlider.value, 10);
+            payload.plasmabrightness = parseInt(brightnessPlasmaSlider.value, 10);
         }
         if (effect === "SNOW") {
-            url += `&snowspeed=${snowSpeedSlider.value}&snowcount=${snowCountSlider.value}&snowwind=${snowWindSlider.value}&snowbrightness=${brightnessSnowSlider.value}`;
+            payload.snowspeed = parseInt(snowSpeedSlider.value, 10);
+            payload.snowcount = parseInt(snowCountSlider.value, 10);
+            payload.snowwind = parseInt(snowWindSlider.value, 10);
+            payload.snowbrightness = parseInt(brightnessSnowSlider.value, 10);
         }
         if (effect === "STARS") {
-            url += `&starscount=${starsCountSlider.value}&starsdimtime=${starsDimTimeSlider.value}&starsappspeed=${starsAppSpeedSlider.value}&starscolormode=${starsColorModeSlider.value}&starsbrightness=${brightnessStarsSlider.value}`;
+            payload.starscount = parseInt(starsCountSlider.value, 10);
+            payload.starsdimtime = parseInt(starsDimTimeSlider.value, 10);
+            payload.starsappspeed = parseInt(starsAppSpeedSlider.value, 10);
+            payload.starscolormode = parseInt(starsColorModeSlider.value, 10);
+            payload.starsbrightness = parseInt(brightnessStarsSlider.value, 10);
         }
         if (effect === "WARP") {
-            const dir = warpDirectionSlider.checked ? 1 : -1;
-            
-            url += `&warppalette=${warpPalette.value}`
-                + `&warpspeed=${warpSpeedSlider.value}`
-                + `&warpbrightness=${brightnessWarpSlider.value}`
-                + `&warpanglestep=${warpAngleStepSlider.value}`
-                + `&warpcolorstep=${warpColorStepSlider.value}`
-                + `&warpdirection=${dir}`
-                + `&warpmode=${warpMode.value}`;
+            payload.warppalette = warpPalette.value;
+            payload.warpspeed = parseInt(warpSpeedSlider.value, 10);
+            payload.warpbrightness = parseInt(brightnessWarpSlider.value, 10);
+            payload.warpanglestep = parseInt(warpAngleStepSlider.value, 10);
+            payload.warpcolorstep = parseInt(warpColorStepSlider.value, 10);
+            payload.warpdirection = warpDirectionSlider.checked ? 1 : -1;
+            payload.warpmode = parseInt(warpMode.value, 10);
         }
         if (effect === "FIREWORK") {
-            url += `&fwcount=${fwCountSlider.value}`
-                + `&fwspeed=${fwSpeedSlider.value}`
-                + `&fwfadespeed=${fwFadeSpeedSlider.value}`
-                + `&fwtwinkle=${fwTwinkleSlider.value}`
-                + `&fwcomet=${fwCometSlider.value}`
-                + `&fwburst=${fwBurstSlider.value}`;
+            payload.fwcount = parseInt(fwCountSlider.value, 10);
+            payload.fwspeed = parseInt(fwSpeedSlider.value, 10);
+            payload.fwfadespeed = parseInt(fwFadeSpeedSlider.value, 10);
+            payload.fwtwinkle = parseInt(fwTwinkleSlider.value, 10);
+            payload.fwcomet = parseInt(fwCometSlider.value, 10);
+            payload.fwburst = parseInt(fwBurstSlider.value, 10);
         }
         if (effect === "AURORA") {
-            url += `&aupalette=${auPalette.value}`
-                + `&autime=${auTimeSlider.value}`
-                + `&auspeed=${auSpeedSlider.value}`
-                + `&auscale=${auScaleSlider.value}`
-                + `&auyoffset=${auYoffsetSlider.value}`
-                + `&aubrightness=${brightnessAuSlider.value}`;
-        }  
+            payload.aupalette = auPalette.value;
+            payload.autime = parseInt(auTimeSlider.value, 10);
+            payload.auspeed = parseInt(auSpeedSlider.value, 10);
+            payload.auscale = parseInt(auScaleSlider.value, 10);
+            payload.auyoffset = parseInt(auYoffsetSlider.value, 10);
+            payload.aubrightness = parseInt(brightnessAuSlider.value, 10);
+        }
         if (effect === "CONFETTI") {
-            url += `&confdensity=${confDensitySlider.value}`
-                + `&confspeed=${confSpeedSlider.value}`
-                + `&conffade=${confFadeSlider.value}`
-                + `&confsat=${confSatSlider.value}`
-                + `&confbrightness=${brightnessConfSlider.value}`;
+            payload.confdensity = parseInt(confDensitySlider.value, 10);
+            payload.confspeed = parseInt(confSpeedSlider.value, 10);
+            payload.conffade = parseInt(confFadeSlider.value, 10);
+            payload.confsat = parseInt(confSatSlider.value, 10);
+            payload.confbrightness = parseInt(brightnessConfSlider.value, 10);
         }
         if (effect === "SNAKE") {
-            url += `&snakelengthMode=${snakeLengthModeSlider.value}`
-                + `&snakeBrightness=${brightnessSnakeSlider.value}`
-                + `&snakeTargetCount=${snakeTargetsSlider.value}`;
+            payload.snakelengthmode = parseInt(snakeLengthModeSlider.value, 10);
+            payload.snakebrightness = parseInt(brightnessSnakeSlider.value, 10);
+            payload.snaketargetcount = parseInt(snakeTargetsSlider.value, 10);
         }
 
-        fetch(url)
-            .then(res => { if (!res.ok) console.error("Effect verzenden mislukt"); })
-            .catch(err => console.error("Netwerkfout bij effect:", err));
+        wsSendJSON(payload);
+        console.log("Effect payload sent:", payload);
     });
+
+    // ===========================
+    // UI sync helper from effectData
+    // ===========================
+
+    function syncUIFromEffectData() {
+        if (!effectData) return;
+        const effect = effectSelect.value;
+
+        if (effect === "WORDCLOCK") {
+            HETISynSlider.checked = (effectData.hetisyn === 1);
+        }
+        if (effect === "SCROLLMESSAGE") {
+            scrollText.value = effectData.scrtext ?? scrollText.value;
+            scrollDuration.value = effectData.scrduration ?? scrollDuration.value;
+            scrollSpeedSlider.value = effectData.scrspeed ?? scrollSpeedSlider.value;
+            scrollSpeedValue.textContent = scrollSpeedSlider.value;
+        }
+        if (effect === "RAINBOW") {
+            rainbowSpeedSlider.value = effectData.rnbspeed ?? rainbowSpeedSlider.value;
+            rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
+            brightnessRainbowSlider.value = effectData.rnbbrightness ?? brightnessRainbowSlider.value;
+            brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
+        }
+        if (effect === "MATRIX_RAIN") {
+            matrixSpeedSlider.value = effectData.mtrxspeed ?? matrixSpeedSlider.value;
+            matrixSpeedValue.textContent = matrixSpeedSlider.value;
+            brightnessMatrixSlider.value = effectData.mtrxbrightness ?? brightnessMatrixSlider.value;
+            brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
+            matrixTrail.value = effectData.mtrxtrail ?? matrixTrail.value;
+        }
+        if (effect === "FIRE") {
+            fireSpeedSlider.value = effectData.firespeed ?? fireSpeedSlider.value;
+            fireSpeedValue.textContent = fireSpeedSlider.value;
+            fireIntensitySlider.value = effectData.fireintensity ?? fireIntensitySlider.value;
+            fireIntensityValue.textContent = fireIntensitySlider.value;
+            brightnessFireSlider.value = effectData.firebrightness ?? brightnessFireSlider.value;
+            brightnessFireValue.textContent = brightnessFireSlider.value;
+        }
+        if (effect === "WAVES") {
+            wavePalette.value = effectData.wavepalette ?? wavePalette.value;
+            waveSpeedSlider.value = effectData.wavespeed ?? waveSpeedSlider.value;
+            waveSpeedValue.textContent = waveSpeedSlider.value;
+            waveScrollSlider.value = effectData.wavescroll ?? waveScrollSlider.value;
+            waveScrollValue.textContent = waveScrollSlider.value;
+            waveColorSpeedSlider.value = effectData.wavecolorspeed ?? waveColorSpeedSlider.value;
+            waveColorSpeedValue.textContent = waveColorSpeedSlider.value;
+            brightnessWaveSlider.value = effectData.wavebrightness ?? brightnessWaveSlider.value;
+            brightnessWaveValue.textContent = brightnessWaveSlider.value;
+        }
+        if (effect === "PLASMA") {
+            plasmaPalette.value = effectData.plasmapalette ?? plasmaPalette.value;
+            plasmaSpeedSlider.value = effectData.plasmaspeed ?? plasmaSpeedSlider.value;
+            plasmaSpeedValue.textContent = plasmaSpeedSlider.value;
+            plasmaScaleSlider.value = effectData.plasmascale ?? plasmaScaleSlider.value;
+            plasmaScaleValue.textContent = plasmaScaleSlider.value;
+            brightnessPlasmaSlider.value = effectData.plasmabrightness ?? brightnessPlasmaSlider.value;
+            brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
+        }
+        if (effect === "SNOW") {
+            snowSpeedSlider.value = effectData.snowspeed ?? snowSpeedSlider.value;
+            snowSpeedValue.textContent = snowSpeedSlider.value;
+            snowCountSlider.value = effectData.snowcount ?? snowCountSlider.value;
+            snowCountValue.textContent = snowCountSlider.value;
+            snowWindSlider.value = effectData.snowwind ?? snowWindSlider.value;
+            snowWindValue.textContent = snowWindSlider.value;
+            brightnessSnowSlider.value = effectData.snowbrightness ?? brightnessSnowSlider.value;
+            brightnessSnowValue.textContent = brightnessSnowSlider.value;
+        }
+        if (effect === "STARS") {
+            starsCountSlider.value = effectData.starscount ?? starsCountSlider.value;
+            starsCountValue.textContent = starsCountSlider.value;
+            starsDimTimeSlider.value = effectData.starsdimtime ?? starsDimTimeSlider.value;
+            starsDimTimeValue.textContent = starsDimTimeSlider.value;
+            starsAppSpeedSlider.value = effectData.starsappspeed ?? starsAppSpeedSlider.value;
+            starsAppSpeedValue.textContent = starsAppSpeedSlider.value;
+            starsColorModeSlider.value = effectData.starscolormode ?? starsColorModeSlider.value;
+            starsColorModeValue.textContent = starsColorModeSlider.value;
+            brightnessStarsSlider.value = effectData.starsbrightness ?? brightnessStarsSlider.value;
+            brightnessStarsValue.textContent = brightnessStarsSlider.value;
+        }
+        if (effect === "WARP") {
+            warpPalette.value = effectData.warppalette ?? warpPalette.value;
+            warpSpeedSlider.value = effectData.warpspeed ?? warpSpeedSlider.value;
+            warpSpeedValue.textContent = warpSpeedSlider.value;
+            brightnessWarpSlider.value = effectData.warpbrightness ?? brightnessWarpSlider.value;
+            brightnessWarpValue.textContent = brightnessWarpSlider.value;
+            warpAngleStepSlider.value = effectData.warpanglestep ?? warpAngleStepSlider.value;
+            warpAngleStepValue.textContent = warpAngleStepSlider.value;
+            warpColorStepSlider.value = effectData.warpcolorstep ?? warpColorStepSlider.value;
+            warpColorStepValue.textContent = warpColorStepSlider.value;
+            warpDirectionSlider.checked = (effectData.warpdirection === 1) ?? warpDirectionSlider.checked;
+            warpMode.value = effectData.warpmode ?? warpMode.value;
+        }
+        if (effect === "FIREWORK") {
+            fwCountSlider.value = effectData.fwcount ?? fwCountSlider.value;
+            fwCountValue.textContent = fwCountSlider.value;
+            fwSpeedSlider.value = effectData.fwspeed ?? fwSpeedSlider.value;
+            fwSpeedValue.textContent = fwSpeedSlider.value;
+            fwFadeSpeedSlider.value = effectData.fwfadespeed ?? fwFadeSpeedSlider.value;
+            fwFadeSpeedValue.textContent = fwFadeSpeedSlider.value;
+            fwTwinkleSlider.value = effectData.fwtwinkle ?? fwTwinkleSlider.value;
+            fwTwinkleValue.textContent = fwTwinkleSlider.value;
+            fwCometSlider.value = effectData.fwcomet ?? fwCometSlider.value;
+            fwCometValue.textContent = fwCometSlider.value;
+            fwBurstSlider.value = effectData.fwburst ?? fwBurstSlider.value;
+            fwBurstValue.textContent = fwBurstSlider.value;
+        }
+        if (effect === "AURORA") {
+            auPalette.value = effectData.aupalette ?? auPalette.value;
+            auTimeSlider.value = effectData.autime ?? auTimeSlider.value;
+            auTimeValue.textContent = auTimeSlider.value;
+            auSpeedSlider.value = effectData.auspeed ?? auSpeedSlider.value;
+            auSpeedValue.textContent = auSpeedSlider.value;
+            auScaleSlider.value = effectData.auscale ?? auScaleSlider.value;
+            auScaleValue.textContent = auScaleSlider.value;
+            auYoffsetSlider.value = effectData.auyoffset ?? auYoffsetSlider.value;
+            auYoffsetValue.textContent = auYoffsetSlider.value;
+            brightnessAuSlider.value = effectData.aubrightness ?? brightnessAuSlider.value;
+            brightnessAuValue.textContent = brightnessAuSlider.value;
+        }
+        if (effect === "CONFETTI") {
+            confDensitySlider.value = effectData.confdensity ?? confDensitySlider.value;
+            confDensityValue.textContent = confDensitySlider.value;
+            confSpeedSlider.value = effectData.confspeed ?? confSpeedSlider.value;
+            confSpeedValue.textContent = confSpeedSlider.value;
+            confFadeSlider.value = effectData.conffade ?? confFadeSlider.value;
+            confFadeValue.textContent = confFadeSlider.value;
+            confSatSlider.value = effectData.confsat ?? confSatSlider.value;
+            confSatValue.textContent = confSatSlider.value;
+            brightnessConfSlider.value = effectData.confbrightness ?? brightnessConfSlider.value;
+            brightnessConfValue.textContent = brightnessConfSlider.value;
+        }
+        if (effect === "SNAKE") {
+            snakeLengthModeSlider.value = effectData.snakelengthmode ?? snakeLengthModeSlider.value;
+            snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
+            brightnessSnakeSlider.value = effectData.snakebrightness ?? brightnessSnakeSlider.value;
+            brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
+            snakeTargetsSlider.value = effectData.snaketargetcount ?? snakeTargetsSlider.value;
+            snakeTargetsValue.textContent = snakeTargetsSlider.value;
+        }
+    }
+
+    // Start
+    connectSnake();
 });
