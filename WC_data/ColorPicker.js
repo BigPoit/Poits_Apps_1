@@ -6,7 +6,7 @@ let wsSnake;
 let effectData = null; // optional local cache for UI sync
 
 function connectSnake() {
-    wsSnake = new WebSocket("ws://" + window.location.host + "/snake");
+    wsSnake = new WebSocket("ws://" + window.location.host + "/effect");
 
     wsSnake.onopen = () => {
         console.log("WebSocket connected");
