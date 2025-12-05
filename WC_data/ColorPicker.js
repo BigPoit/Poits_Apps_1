@@ -410,159 +410,160 @@
 
         // SCROLLMESSAGE
         if (effect === "SCROLLMESSAGE") {
-            scrollText.value = effectData.scrtext ?? scrollText.value;
-            scrollDuration.value = effectData.scrduration ?? scrollDuration.value;
-            scrollSpeedSlider.value = effectData.scrspeed ?? scrollSpeedSlider.value;
+            scrollText.value = effectData.scrtext || "";
+            scrollDuration.value = effectData.scrduration;
+            scrollSpeedSlider.value = effectData.scrspeed;
             scrollSpeedValue.textContent = scrollSpeedSlider.value;
         }
 
         // RAINBOW
         if (effect === "RAINBOW") {
-            rainbowSpeedSlider.value = effectData.rnbspeed ?? rainbowSpeedSlider.value;
+            rainbowSpeedSlider.value = effectData.rnbspeed;
             rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
-            brightnessRainbowSlider.value = effectData.rnbbright ?? brightnessRainbowSlider.value;
+            brightnessRainbowSlider.value = effectData.rnbbright;
             brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
         }
 
         // MATRIX_RAIN
         if (effect === "MATRIX_RAIN") {
-            matrixSpeedSlider.value = effectData.mtrxspeed ?? matrixSpeedSlider.value;
+            matrixSpeedSlider.value = effectData.mtrxspeed;
             matrixSpeedValue.textContent = matrixSpeedSlider.value;
-            brightnessMatrixSlider.value = effectData.mtrxbright ?? brightnessMatrixSlider.value;
+            brightnessMatrixSlider.value = effectData.mtrxbright;
             brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
-            matrixTrail.value = effectData.mtrxtrail ?? matrixTrail.value;
+            matrixTrail.value = effectData.mtrxtrail;
         }
 
         // FIRE
         if (effect === "FIRE") {
-            fireSpeedSlider.value = effectData.firespeed ?? fireSpeedSlider.value;
+            fireSpeedSlider.value = effectData.firespeed;
             fireSpeedValue.textContent = fireSpeedSlider.value;
-            fireIntensitySlider.value = effectData.fireintensity ?? fireIntensitySlider.value;
+            fireIntensitySlider.value = effectData.fireintensity;
             fireIntensityValue.textContent = fireIntensitySlider.value;
-            brightnessFireSlider.value = effectData.firebright ?? brightnessFireSlider.value;
+            brightnessFireSlider.value = effectData.firebright;
             brightnessFireValue.textContent = brightnessFireSlider.value;
         }
 
         // WAVES
         if (effect === "WAVES") {
-            wavePalette.value = effectData.wavepalette ?? wavePalette.value;
-            waveSpeedSlider.value = effectData.wavespeed ?? waveSpeedSlider.value;
+            wavePalette.value = effectData.wavepalette;
+            waveSpeedSlider.value = effectData.wavespeed;
             waveSpeedValue.textContent = waveSpeedSlider.value;
-            waveScrollSlider.value = effectData.wavescroll ?? waveScrollSlider.value;
+            waveScrollSlider.value = effectData.wavescroll;
             waveScrollValue.textContent = waveScrollSlider.value;
-            waveColorSpeedSlider.value = effectData.wavecolorspeed ?? waveColorSpeedSlider.value;
+            waveColorSpeedSlider.value = effectData.wavecolorspeed;
             waveColorSpeedValue.textContent = waveColorSpeedSlider.value;
-            brightnessWaveSlider.value = effectData.wavebright ?? brightnessWaveSlider.value;
+            brightnessWaveSlider.value = effectData.wavebright;
             brightnessWaveValue.textContent = brightnessWaveSlider.value;
         }
 
         // PLASMA
         if (effect === "PLASMA") {
-            plasmaPalette.value = effectData.plasmapalette ?? plasmaPalette.value;
-            plasmaSpeedSlider.value = effectData.plasmaspeed ?? plasmaSpeedSlider.value;
+            plasmaPalette.value = effectData.plasmapalette;
+            plasmaSpeedSlider.value = effectData.plasmaspeed;
             plasmaSpeedValue.textContent = plasmaSpeedSlider.value;
-            plasmaScaleSlider.value = effectData.plasmascale ?? plasmaScaleSlider.value;
+            plasmaScaleSlider.value = effectData.plasmascale;
             plasmaScaleValue.textContent = plasmaScaleSlider.value;
-            brightnessPlasmaSlider.value = effectData.plasmabright ?? brightnessPlasmaSlider.value;
+            brightnessPlasmaSlider.value = effectData.plasmabright;
             brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
         }
 
         // SNOW
         if (effect === "SNOW") {
-            snowSpeedSlider.value = effectData.snowspeed ?? snowSpeedSlider.value;
+            snowSpeedSlider.value = effectData.snowspeed;
             snowSpeedValue.textContent = snowSpeedSlider.value;
-            snowCountSlider.value = effectData.snowcount ?? snowCountSlider.value;
+            snowCountSlider.value = effectData.snowcount;
             snowCountValue.textContent = snowCountSlider.value;
-            snowWindSlider.value = effectData.snowwind ?? snowWindSlider.value;
+            snowWindSlider.value = effectData.snowwind;
             snowWindValue.textContent = snowWindSlider.value;
-            brightnessSnowSlider.value = effectData.snowbright ?? brightnessSnowSlider.value;
+            brightnessSnowSlider.value = effectData.snowbright;
             brightnessSnowValue.textContent = brightnessSnowSlider.value;
         }
 
         // STARS
         if (effect === "STARS") {
-            starsCountSlider.value = effectData.starscount ?? starsCountSlider.value;
+            starsCountSlider.value = effectData.starscount;
             starsCountValue.textContent = starsCountSlider.value;
-            starsDimTimeSlider.value = effectData.starsdimtime ?? starsDimTimeSlider.value;
+            starsDimTimeSlider.value = effectData.starsdimtime;
             starsDimTimeValue.textContent = starsDimTimeSlider.value;
-            starsAppSpeedSlider.value = effectData.starsappspeed ?? starsAppSpeedSlider.value;
+            starsAppSpeedSlider.value = effectData.starsappspeed;
             starsAppSpeedValue.textContent = starsAppSpeedSlider.value;
-            starsColorModeSlider.value = effectData.starscolormode ?? starsColorModeSlider.value;
+            starsColorModeSlider.value = effectData.starscolormode;
             starsColorModeValue.textContent = starsColorModeSlider.value;
-            brightnessStarsSlider.value = effectData.starsbright ?? brightnessStarsSlider.value;
+            brightnessStarsSlider.value = effectData.starsbright;
             brightnessStarsValue.textContent = brightnessStarsSlider.value;
         }
 
         // WARP
         if (effect === "WARP") {
-            warpPalette.value = effectData.warppalette ?? warpPalette.value;
-            warpSpeedSlider.value = effectData.warpspeed ?? warpSpeedSlider.value;
+            warpPalette.value = effectData.warppalette;
+            warpSpeedSlider.value = effectData.warpspeed;
             warpSpeedValue.textContent = warpSpeedSlider.value;
-            brightnessWarpSlider.value = effectData.warpbright ?? brightnessWarpSlider.value;
+            brightnessWarpSlider.value = effectData.warpbright;
             brightnessWarpValue.textContent = brightnessWarpSlider.value;
-            warpAngleStepSlider.value = effectData.warpanglestep ?? warpAngleStepSlider.value;
+            warpAngleStepSlider.value = effectData.warpanglestep;
             warpAngleStepValue.textContent = warpAngleStepSlider.value;
-            warpColorStepSlider.value = effectData.warpcolorstep ?? warpColorStepSlider.value;
+            warpColorStepSlider.value = effectData.warpcolorstep;
             warpColorStepValue.textContent = warpColorStepSlider.value;
-            warpDirectionSlider.checked = (effectData.warpdir === 1) ?? warpDirectionSlider.checked;
-            warpMode.value = effectData.warpmode ?? warpMode.value;
+            warpDirectionSlider.checked = (effectData.warpdir === 1);
+            warpMode.value = effectData.warpmode;
         }
 
         // FIREWORK
         if (effect === "FIREWORK") {
-            fwCountSlider.value = effectData.fwcount ?? fwCountSlider.value;
+            fwCountSlider.value = effectData.fwcount;
             fwCountValue.textContent = fwCountSlider.value;
-            fwSpeedSlider.value = effectData.fwspeed ?? fwSpeedSlider.value;
+            fwSpeedSlider.value = effectData.fwspeed;
             fwSpeedValue.textContent = fwSpeedSlider.value;
-            fwFadeSpeedSlider.value = effectData.fwfadespeed ?? fwFadeSpeedSlider.value;
+            fwFadeSpeedSlider.value = effectData.fwfadespeed;
             fwFadeSpeedValue.textContent = fwFadeSpeedSlider.value;
-            fwTwinkleSlider.value = effectData.fwtwinkle ?? fwTwinkleSlider.value;
+            fwTwinkleSlider.value = effectData.fwtwinkle;
             fwTwinkleValue.textContent = fwTwinkleSlider.value;
-            fwCometSlider.value = effectData.fwcomet ?? fwCometSlider.value;
+            fwCometSlider.value = effectData.fwcomet;
             fwCometValue.textContent = fwCometSlider.value;
-            fwBurstSlider.value = effectData.fwburst ?? fwBurstSlider.value;
+            fwBurstSlider.value = effectData.fwburst;
             fwBurstValue.textContent = fwBurstSlider.value;
         }
 
         // AURORA
         if (effect === "AURORA") {
-            auPalette.value = effectData.aupalette ?? auPalette.value;
-            auTimeSlider.value = effectData.autime ?? auTimeSlider.value;
+            auPalette.value = effectData.aupalette;
+            auTimeSlider.value = effectData.autime;
             auTimeValue.textContent = auTimeSlider.value;
-            auSpeedSlider.value = effectData.auspeed ?? auSpeedSlider.value;
+            auSpeedSlider.value = effectData.auspeed;
             auSpeedValue.textContent = auSpeedSlider.value;
-            auScaleSlider.value = effectData.auscale ?? auScaleSlider.value;
+            auScaleSlider.value = effectData.auscale;
             auScaleValue.textContent = auScaleSlider.value;
-            auYoffsetSlider.value = effectData.auyoffset ?? auYoffsetSlider.value;
+            auYoffsetSlider.value = effectData.auyoffset;
             auYoffsetValue.textContent = auYoffsetSlider.value;
-            brightnessAuSlider.value = effectData.aubright ?? brightnessAuSlider.value;
+            brightnessAuSlider.value = effectData.aubright;
             brightnessAuValue.textContent = brightnessAuSlider.value;
         }
 
         // CONFETTI
         if (effect === "CONFETTI") {
-            confDensitySlider.value = effectData.confdensity ?? confDensitySlider.value;
+            confDensitySlider.value = effectData.confdensity;
             confDensityValue.textContent = confDensitySlider.value;
-            confSpeedSlider.value = effectData.confspeed ?? confSpeedSlider.value;
+            confSpeedSlider.value = effectData.confspeed;
             confSpeedValue.textContent = confSpeedSlider.value;
-            confFadeSlider.value = effectData.conffade ?? confFadeSlider.value;
+            confFadeSlider.value = effectData.conffade;
             confFadeValue.textContent = confFadeSlider.value;
-            confSatSlider.value = effectData.confsat ?? confSatSlider.value;
+            confSatSlider.value = effectData.confsat;
             confSatValue.textContent = confSatSlider.value;
-            brightnessConfSlider.value = effectData.confbright ?? brightnessConfSlider.value;
+            brightnessConfSlider.value = effectData.confbright;
             brightnessConfValue.textContent = brightnessConfSlider.value;
         }
 
         // SNAKE
         if (effect === "SNAKE") {
-            snakeLengthModeSlider.value = effectData.snlengthmode ?? snakeLengthModeSlider.value;
+            snakeLengthModeSlider.value = effectData.snlengthmode;
             snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-            brightnessSnakeSlider.value = effectData.snbrightness ?? brightnessSnakeSlider.value;
+            brightnessSnakeSlider.value = effectData.snbrightness;
             brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-            snakeTargetsSlider.value = effectData.sntargetcount ?? snakeTargetsSlider.value;
+            snakeTargetsSlider.value = effectData.sntargetcount;
             snakeTargetsValue.textContent = snakeTargetsSlider.value;
         }
     }
+
 
     // ===========================
     // Start button → send JSON payload
