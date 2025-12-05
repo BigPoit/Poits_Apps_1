@@ -106,7 +106,6 @@
     const warpColorStepSlider = document.getElementById("warp-colorstep");
     const warpColorStepValue = document.getElementById("warp-colorstep-value");
     const warpDirectionSlider = document.getElementById("warp-direction");
-    const warpDirectionValue = document.getElementById("warp-direction-value");
     const warpMode = document.getElementById("warp-mode");
 
     const fwControls = document.getElementById("fwControls");
@@ -146,6 +145,7 @@
     const confSatSlider = document.getElementById("conf-sat");
     const confSatValue = document.getElementById("conf-sat-value");
     const brightnessConfSlider = document.getElementById("brightness-conf");
+
     const brightnessConfValue = document.getElementById("brightness-conf-value");
 
     const snakeControls = document.getElementById("snakeControls");
@@ -229,10 +229,10 @@
     fillPaletteSelect(warpPalette);
     fillPaletteSelect(auPalette);
 
-    effectSelect.addEventListener("change", function () {
-        const effect = this.value;
-
-        // Show/hide controls
+    // ===========================
+    // Wrapper activator
+    // ===========================
+    function toggleControls(effect) {
         const wordclockControls = document.getElementById("wordclockControls");
         if (wordclockControls) wordclockControls.style.display = effect === "WORDCLOCK" ? "flex" : "none";
         scrollOptions.style.display = effect === "SCROLLMESSAGE" ? "flex" : "none";
@@ -248,13 +248,7 @@
         auControls.style.display = effect === "AURORA" ? "flex" : "none";
         confControls.style.display = effect === "CONFETTI" ? "flex" : "none";
         snakeControls.style.display = effect === "SNAKE" ? "flex" : "none";
-
-        // Push effect selection to server
-        wsSendText(`effect:${effect}`);
-
-        // Sync UI values from effectData if available
-        syncUIFromEffectData();
-    });
+    }
 
     // ===========================
     // Slider helper
@@ -268,20 +262,18 @@
     }
 
     // ===========================
-    // UI event bindings
+    // Event bindings (voorbeeld)
     // ===========================
     window.sendSnakeCmd = function (cmd) {
         wsSendText(cmd);
     };
 
-    // WORDCLOCK
     HETISynSlider.addEventListener("change", () => {
         const yn = HETISynSlider.checked ? 1 : -1;
         if (effectData) effectData.hetisyn = yn;
         wsSendText(`hetisyn:${yn}`);
     });
 
-    // SCROLLMESSAGE
     scrollText.addEventListener("input", () => {
         if (effectData) effectData.scrtext = scrollText.value;
         wsSendText(`scrtext:${encodeURIComponent(scrollText.value)}`);
@@ -293,11 +285,9 @@
     });
     attachSlider(scrollSpeedSlider, scrollSpeedValue, "scrspeed");
 
-    // RAINBOW (match server keys: rnbspeed, rnbbright)
     attachSlider(rainbowSpeedSlider, rainbowSpeedValue, "rnbspeed");
     attachSlider(brightnessRainbowSlider, brightnessRainbowValue, "rnbbright");
 
-    // MATRIX_RAIN (match server keys: mtrxspeed, mtrxbright, mtrxtrail)
     attachSlider(matrixSpeedSlider, matrixSpeedValue, "mtrxspeed");
     attachSlider(brightnessMatrixSlider, brightnessMatrixValue, "mtrxbright");
     matrixTrail.addEventListener("input", () => {
@@ -306,12 +296,10 @@
         wsSendText(`mtrxtrail:${v}`);
     });
 
-    // FIRE (match: firespeed, fireintensity, firebright)
     attachSlider(fireSpeedSlider, fireSpeedValue, "firespeed");
     attachSlider(fireIntensitySlider, fireIntensityValue, "fireintensity");
     attachSlider(brightnessFireSlider, brightnessFireValue, "firebright");
-
-    // WAVES (match: wavepalette, wavespeed, wavescroll, wavecolorspeed, wavebright)
+    ``    // WAVES
     wavePalette.addEventListener("change", () => {
         if (effectData) effectData.wavepalette = wavePalette.value;
         wsSendText(`wavepalette:${wavePalette.value}`);
@@ -321,7 +309,7 @@
     attachSlider(waveColorSpeedSlider, waveColorSpeedValue, "wavecolorspeed");
     attachSlider(brightnessWaveSlider, brightnessWaveValue, "wavebright");
 
-    // PLASMA (match: plasmapalette, plasmaspeed, plasmascale, plasmabright)
+    // PLASMA
     plasmaPalette.addEventListener("change", () => {
         if (effectData) effectData.plasmapalette = plasmaPalette.value;
         wsSendText(`plasmapalette:${plasmaPalette.value}`);
@@ -330,20 +318,20 @@
     attachSlider(plasmaScaleSlider, plasmaScaleValue, "plasmascale");
     attachSlider(brightnessPlasmaSlider, brightnessPlasmaValue, "plasmabright");
 
-    // SNOW (match: snowspeed, snowcount, snowwind, snowbright)
+    // SNOW
     attachSlider(snowSpeedSlider, snowSpeedValue, "snowspeed");
     attachSlider(snowCountSlider, snowCountValue, "snowcount");
     attachSlider(snowWindSlider, snowWindValue, "snowwind");
     attachSlider(brightnessSnowSlider, brightnessSnowValue, "snowbright");
 
-    // STARS (match: starscount, starsdimtime, starsappspeed, starscolormode, starsbright)
+    // STARS
     attachSlider(starsCountSlider, starsCountValue, "starscount");
     attachSlider(starsDimTimeSlider, starsDimTimeValue, "starsdimtime");
     attachSlider(starsAppSpeedSlider, starsAppSpeedValue, "starsappspeed");
     attachSlider(starsColorModeSlider, starsColorModeValue, "starscolormode");
     attachSlider(brightnessStarsSlider, brightnessStarsValue, "starsbright");
 
-    // WARP (match: warppalette, warpspeed, warpbright, warpanglestep, warpcolorstep, warpdir, warpmode)
+    // WARP
     warpPalette.addEventListener("change", () => {
         if (effectData) effectData.warppalette = warpPalette.value;
         wsSendText(`warppalette:${warpPalette.value}`);
@@ -363,7 +351,7 @@
         wsSendText(`warpmode:${v}`);
     });
 
-    // FIREWORK (match: fwcount, fwspeed, fwfadespeed, fwtwinkle, fwcomet, fwburst)
+    // FIREWORK
     attachSlider(fwCountSlider, fwCountValue, "fwcount");
     attachSlider(fwSpeedSlider, fwSpeedValue, "fwspeed");
     attachSlider(fwFadeSpeedSlider, fwFadeSpeedValue, "fwfadespeed");
@@ -371,7 +359,7 @@
     attachSlider(fwCometSlider, fwCometValue, "fwcomet");
     attachSlider(fwBurstSlider, fwBurstValue, "fwburst");
 
-    // AURORA (match: aupalette, autime, auspeed, auscale, auyoffset, aubright)
+    // AURORA
     auPalette.addEventListener("change", () => {
         if (effectData) effectData.aupalette = auPalette.value;
         wsSendText(`aupalette:${auPalette.value}`);
@@ -382,47 +370,61 @@
     attachSlider(auYoffsetSlider, auYoffsetValue, "auyoffset");
     attachSlider(brightnessAuSlider, brightnessAuValue, "aubright");
 
-    // CONFETTI (match: confdensity, confspeed, conffade, confsat, confbright)
+    // CONFETTI
     attachSlider(confDensitySlider, confDensityValue, "confdensity");
     attachSlider(confSpeedSlider, confSpeedValue, "confspeed");
     attachSlider(confFadeSlider, confFadeValue, "conffade");
     attachSlider(confSatSlider, confSatValue, "confsat");
     attachSlider(brightnessConfSlider, brightnessConfValue, "confbright");
 
-    // SNAKE (match: snlengthmode, snbrightness, sntargetcount)
+    // SNAKE
     attachSlider(snakeLengthModeSlider, snakeLengthModeValue, "snlengthmode");
     attachSlider(brightnessSnakeSlider, brightnessSnakeValue, "snbrightness");
     attachSlider(snakeTargetsSlider, snakeTargetsValue, "sntargetcount");
 
     // ===========================
-    // UI sync from effectData
+    // Effect selection and toggling
+    // ===========================
+    effectSelect.addEventListener("change", function () {
+        const effect = this.value;
+        toggleControls(effect);
+        wsSendText(`effect:${effect}`);
+        if (effectData) syncUIFromEffectData();
+    });
+
+    // ===========================
+    // UI sync helper from effectData
     // ===========================
     function syncUIFromEffectData() {
         if (!effectData) return;
 
-        // dropdown
+        // dropdown zetten en wrappers tonen
         effectSelect.value = effectData.effect;
         const effect = effectData.effect;
+        toggleControls(effect);
 
-        // trigger de change-event → wrappers tonen
-        const evt = new Event("change");
-        effectSelect.dispatchEvent(evt);
-
+        // WORDCLOCK
         if (effect === "WORDCLOCK") {
             HETISynSlider.checked = (effectData.hetisyn === 1);
         }
+
+        // SCROLLMESSAGE
         if (effect === "SCROLLMESSAGE") {
             scrollText.value = effectData.scrtext ?? scrollText.value;
             scrollDuration.value = effectData.scrduration ?? scrollDuration.value;
             scrollSpeedSlider.value = effectData.scrspeed ?? scrollSpeedSlider.value;
             scrollSpeedValue.textContent = scrollSpeedSlider.value;
         }
+
+        // RAINBOW
         if (effect === "RAINBOW") {
             rainbowSpeedSlider.value = effectData.rnbspeed ?? rainbowSpeedSlider.value;
             rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
             brightnessRainbowSlider.value = effectData.rnbbright ?? brightnessRainbowSlider.value;
             brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
         }
+
+        // MATRIX_RAIN
         if (effect === "MATRIX_RAIN") {
             matrixSpeedSlider.value = effectData.mtrxspeed ?? matrixSpeedSlider.value;
             matrixSpeedValue.textContent = matrixSpeedSlider.value;
@@ -430,6 +432,8 @@
             brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
             matrixTrail.value = effectData.mtrxtrail ?? matrixTrail.value;
         }
+
+        // FIRE
         if (effect === "FIRE") {
             fireSpeedSlider.value = effectData.firespeed ?? fireSpeedSlider.value;
             fireSpeedValue.textContent = fireSpeedSlider.value;
@@ -438,6 +442,8 @@
             brightnessFireSlider.value = effectData.firebright ?? brightnessFireSlider.value;
             brightnessFireValue.textContent = brightnessFireSlider.value;
         }
+
+        // WAVES
         if (effect === "WAVES") {
             wavePalette.value = effectData.wavepalette ?? wavePalette.value;
             waveSpeedSlider.value = effectData.wavespeed ?? waveSpeedSlider.value;
@@ -449,6 +455,8 @@
             brightnessWaveSlider.value = effectData.wavebright ?? brightnessWaveSlider.value;
             brightnessWaveValue.textContent = brightnessWaveSlider.value;
         }
+
+        // PLASMA
         if (effect === "PLASMA") {
             plasmaPalette.value = effectData.plasmapalette ?? plasmaPalette.value;
             plasmaSpeedSlider.value = effectData.plasmaspeed ?? plasmaSpeedSlider.value;
@@ -458,6 +466,8 @@
             brightnessPlasmaSlider.value = effectData.plasmabright ?? brightnessPlasmaSlider.value;
             brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
         }
+
+        // SNOW
         if (effect === "SNOW") {
             snowSpeedSlider.value = effectData.snowspeed ?? snowSpeedSlider.value;
             snowSpeedValue.textContent = snowSpeedSlider.value;
@@ -468,6 +478,8 @@
             brightnessSnowSlider.value = effectData.snowbright ?? brightnessSnowSlider.value;
             brightnessSnowValue.textContent = brightnessSnowSlider.value;
         }
+
+        // STARS
         if (effect === "STARS") {
             starsCountSlider.value = effectData.starscount ?? starsCountSlider.value;
             starsCountValue.textContent = starsCountSlider.value;
@@ -480,6 +492,8 @@
             brightnessStarsSlider.value = effectData.starsbright ?? brightnessStarsSlider.value;
             brightnessStarsValue.textContent = brightnessStarsSlider.value;
         }
+
+        // WARP
         if (effect === "WARP") {
             warpPalette.value = effectData.warppalette ?? warpPalette.value;
             warpSpeedSlider.value = effectData.warpspeed ?? warpSpeedSlider.value;
@@ -493,6 +507,8 @@
             warpDirectionSlider.checked = (effectData.warpdir === 1) ?? warpDirectionSlider.checked;
             warpMode.value = effectData.warpmode ?? warpMode.value;
         }
+
+        // FIREWORK
         if (effect === "FIREWORK") {
             fwCountSlider.value = effectData.fwcount ?? fwCountSlider.value;
             fwCountValue.textContent = fwCountSlider.value;
@@ -507,6 +523,8 @@
             fwBurstSlider.value = effectData.fwburst ?? fwBurstSlider.value;
             fwBurstValue.textContent = fwBurstSlider.value;
         }
+
+        // AURORA
         if (effect === "AURORA") {
             auPalette.value = effectData.aupalette ?? auPalette.value;
             auTimeSlider.value = effectData.autime ?? auTimeSlider.value;
@@ -520,6 +538,8 @@
             brightnessAuSlider.value = effectData.aubright ?? brightnessAuSlider.value;
             brightnessAuValue.textContent = brightnessAuSlider.value;
         }
+
+        // CONFETTI
         if (effect === "CONFETTI") {
             confDensitySlider.value = effectData.confdensity ?? confDensitySlider.value;
             confDensityValue.textContent = confDensitySlider.value;
@@ -532,6 +552,8 @@
             brightnessConfSlider.value = effectData.confbright ?? brightnessConfSlider.value;
             brightnessConfValue.textContent = brightnessConfSlider.value;
         }
+
+        // SNAKE
         if (effect === "SNAKE") {
             snakeLengthModeSlider.value = effectData.snlengthmode ?? snakeLengthModeSlider.value;
             snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
@@ -541,6 +563,103 @@
             snakeTargetsValue.textContent = snakeTargetsSlider.value;
         }
     }
+
+    // ===========================
+    // Start button → send JSON payload
+    // ===========================
+    startButton.addEventListener("click", function () {
+        const effect = effectSelect.value;
+        const payload = { effect };
+
+        if (effect === "WORDCLOCK") {
+            payload.hetisyn = HETISynSlider.checked ? 1 : -1;
+        }
+        if (effect === "SCROLLMESSAGE") {
+            payload.scrtext = scrollText.value;
+            payload.scrduration = parseInt(scrollDuration.value, 10);
+            payload.scrspeed = parseInt(scrollSpeedSlider.value, 10);
+        }
+        if (effect === "RAINBOW") {
+            payload.rnbspeed = parseInt(rainbowSpeedSlider.value, 10);
+            payload.rnbbright = parseInt(brightnessRainbowSlider.value, 10);
+        }
+        if (effect === "MATRIX_RAIN") {
+            payload.mtrxspeed = parseInt(matrixSpeedSlider.value, 10);
+            payload.mtrxbright = parseInt(brightnessMatrixSlider.value, 10);
+            payload.mtrxtrail = parseInt(matrixTrail.value, 10);
+        }
+        if (effect === "FIRE") {
+            payload.firespeed = parseInt(fireSpeedSlider.value, 10);
+            payload.fireintensity = parseInt(fireIntensitySlider.value, 10);
+            payload.firebright = parseInt(brightnessFireSlider.value, 10);
+        }
+        if (effect === "WAVES") {
+            payload.wavepalette = wavePalette.value;
+            payload.wavespeed = parseInt(waveSpeedSlider.value, 10);
+            payload.wavescroll = parseInt(waveScrollSlider.value, 10);
+            payload.wavecolorspeed = parseInt(waveColorSpeedSlider.value, 10);
+            payload.wavebright = parseInt(brightnessWaveSlider.value, 10);
+        }
+        if (effect === "PLASMA") {
+            payload.plasmapalette = plasmaPalette.value;
+            payload.plasmaspeed = parseInt(plasmaSpeedSlider.value, 10);
+            payload.plasmascale = parseInt(plasmaScaleSlider.value, 10);
+            payload.plasmabright = parseInt(brightnessPlasmaSlider.value, 10);
+        }
+        if (effect === "SNOW") {
+            payload.snowspeed = parseInt(snowSpeedSlider.value, 10);
+            payload.snowcount = parseInt(snowCountSlider.value, 10);
+            payload.snowwind = parseInt(snowWindSlider.value, 10);
+            payload.snowbright = parseInt(brightnessSnowSlider.value, 10);
+        }
+        if (effect === "STARS") {
+            payload.starscount = parseInt(starsCountSlider.value, 10);
+            payload.starsdimtime = parseInt(starsDimTimeSlider.value, 10);
+            payload.starsappspeed = parseInt(starsAppSpeedSlider.value, 10);
+            payload.starscolormode = parseInt(starsColorModeSlider.value, 10);
+            payload.starsbright = parseInt(brightnessStarsSlider.value, 10);
+        }
+        if (effect === "WARP") {
+            payload.warppalette = warpPalette.value;
+            payload.warpspeed = parseInt(warpSpeedSlider.value, 10);
+            payload.warpbright = parseInt(brightnessWarpSlider.value, 10);
+            payload.warpanglestep = parseInt(warpAngleStepSlider.value, 10);
+            payload.warpcolorstep = parseInt(warpColorStepSlider.value, 10);
+            payload.warpdir = warpDirectionSlider.checked ? 1 : -1;
+            payload.warpmode = parseInt(warpMode.value, 10);
+        }
+        if (effect === "FIREWORK") {
+            payload.fwcount = parseInt(fwCountSlider.value, 10);
+            payload.fwspeed = parseInt(fwSpeedSlider.value, 10);
+            payload.fwfadespeed = parseInt(fwFadeSpeedSlider.value, 10);
+            payload.fwtwinkle = parseInt(fwTwinkleSlider.value, 10);
+            payload.fwcomet = parseInt(fwCometSlider.value, 10);
+            payload.fwburst = parseInt(fwBurstSlider.value, 10);
+        }
+        if (effect === "AURORA") {
+            payload.aupalette = auPalette.value;
+            payload.autime = parseInt(auTimeSlider.value, 10);
+            payload.auspeed = parseInt(auSpeedSlider.value, 10);
+            payload.auscale = parseInt(auScaleSlider.value, 10);
+            payload.auyoffset = parseInt(auYoffsetSlider.value, 10);
+            payload.aubright = parseInt(brightnessAuSlider.value, 10);
+        }
+        if (effect === "CONFETTI") {
+            payload.confdensity = parseInt(confDensitySlider.value, 10);
+            payload.confspeed = parseInt(confSpeedSlider.value, 10);
+            payload.conffade = parseInt(confFadeSlider.value, 10);
+            payload.confsat = parseInt(confSatSlider.value, 10);
+            payload.confbright = parseInt(brightnessConfSlider.value, 10);
+        }
+        if (effect === "SNAKE") {
+            payload.snlengthmode = parseInt(snakeLengthModeSlider.value, 10);
+            payload.snbrightness = parseInt(brightnessSnakeSlider.value, 10);
+            payload.sntargetcount = parseInt(snakeTargetsSlider.value, 10);
+        }
+
+        wsSendJSON(payload);
+        console.log("Effect payload sent:", payload);
+    });
 
     // ===========================
     // Color picker
@@ -578,7 +697,7 @@
             console.log("WebSocket connected");
             const scoreEl = document.getElementById("snake-score");
             if (scoreEl) scoreEl.textContent = "Score: 0 (connected)";
-            try { wsEffect.send("getstate"); } catch (e) {}
+            try { wsEffect.send("getstate"); } catch (e) { }
         };
 
         wsEffect.onclose = () => {
