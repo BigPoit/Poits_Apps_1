@@ -1,100 +1,29 @@
-﻿// ===========================
-// WebSocket setup and helpers
-// ===========================
+﻿document.addEventListener("DOMContentLoaded", function () {
+    // ===========================
+    // Globals and helpers
+    // ===========================
+    let wsEffect;
+    let effectData = null;
 
-let wsEffect;
-let effectData = null; // optional local cache for UI sync
-
-function connectEffect() {
-    wsEffect = new WebSocket("ws://" + window.location.host + "/effect");
-
-    wsEffect.onopen = () => {
-        console.log("WebSocket connected");
-        const scoreEl = document.getElementById("snake-score");
-        if (scoreEl) scoreEl.textContent = "Score: 0 (connected)";
-        // request current state if server supports it
-        try {
-            wsEffect.send("getstate");
-        } catch (e) { }
-    };
-
-    wsEffect.onclose = () => {
-        console.log("WebSocket disconnected");
-        const scoreEl = document.getElementById("snake-score");
-        if (scoreEl) scoreEl.textContent = "Score: ? (disconnected)";
-        setTimeout(connectEffect, 3000);
-    };
-
-    wsEffect.onmessage = (event) => {
-        // Basic message handling: score updates or JSON state
-        const msg = event.data;
-        if (typeof msg === "string" && msg.startsWith("score:")) {
-            const scoreEl = document.getElementById("snake-score");
-            if (scoreEl) scoreEl.textContent = "Score: " + msg.split(":")[1];
-            return;
+    function wsSendText(text) {
+        if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
+            wsEffect.send(text);
+        } else {
+            console.warn("WebSocket not connected, cannot send:", text);
         }
-        // If server sends JSON state, sync UI
-        try {
-            const data = JSON.parse(msg);
-            effectData = data;
-            console.log("Got effectData:", effectData);
-            try {
-                syncUIFromEffectData();
-            } catch (err) {
-                console.error("syncUIFromEffectData crashed:", err);
-            }
-        } catch (e) {
-            console.log("Server message:", msg);
+    }
+
+    function wsSendJSON(payload) {
+        if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
+            wsEffect.send(JSON.stringify(payload));
+        } else {
+            console.error("WebSocket not connected, cannot send JSON:", payload);
         }
-    };
-}
-
-function wsSendText(text) {
-    if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
-        wsEffect.send(text);
-    } else {
-        console.warn("WebSocket not connected, cannot send:", text);
     }
-}
 
-function wsSendJSON(payload) {
-    if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
-        wsEffect.send(JSON.stringify(payload));
-    } else {
-        console.error("WebSocket not connected, cannot send JSON:", payload);
-    }
-}
-
-// =====================================
-// DOM elements, color picker and palettes
-// =====================================
-
-document.addEventListener("DOMContentLoaded", function () {
-    const MAX_SIZE = 500;
-    const size = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
-
-    // Color picker
-    const colorPicker = new iro.ColorPicker("#picker", {
-        width: size,
-        color: "#ffffff",
-        layout: [
-            { component: iro.ui.Wheel },
-            { component: iro.ui.Slider, options: { sliderType: "value" } },
-        ],
-    });
-
-    window.addEventListener("resize", () => {
-        const newSize = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
-        colorPicker.resize(newSize);
-    });
-
-    colorPicker.on("color:change", function (color) {
-        const { r, g, b } = color.rgb;
-        document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-        wsSendText(`color:${r},${g},${b}`);
-    });
-
-    // Elements
+    // ===========================
+    // DOM elements
+    // ===========================
     const HETISynSlider = document.getElementById("HETIS-yn");
 
     const scrollOptions = document.getElementById("scroll-options");
@@ -230,7 +159,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const effectSelect = document.getElementById("effect");
     const startButton = document.getElementById("start-effect");
 
+    // ===========================
     // Palettes
+    // ===========================
     const paletteOptions = [
         { value: "analogous", label: "analogous" },
         { value: "aurora_green", label: "aurora_green" },
@@ -299,10 +230,8 @@ document.addEventListener("DOMContentLoaded", function () {
     fillPaletteSelect(auPalette);
 
     // ===========================
-    // UI event bindings (WebSocket)
+    // Slider helper
     // ===========================
-
-    // Generic slider helper
     function attachSlider(slider, valueEl, key) {
         slider.addEventListener("input", () => {
             valueEl.textContent = slider.value;
@@ -311,7 +240,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Snake direction buttons from HTML use sendSnakeCmd()
+    // ===========================
+    // UI event bindings
+    // ===========================
     window.sendSnakeCmd = function (cmd) {
         wsSendText(cmd);
     };
@@ -335,25 +266,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     attachSlider(scrollSpeedSlider, scrollSpeedValue, "scrspeed");
 
-    // RAINBOW
+    // RAINBOW (match server keys: rnbspeed, rnbbright)
     attachSlider(rainbowSpeedSlider, rainbowSpeedValue, "rnbspeed");
-    attachSlider(brightnessRainbowSlider, brightnessRainbowValue, "rnbbrightness");
+    attachSlider(brightnessRainbowSlider, brightnessRainbowValue, "rnbbright");
 
-    // MATRIX_RAIN
+    // MATRIX_RAIN (match server keys: mtrxspeed, mtrxbright, mtrxtrail)
     attachSlider(matrixSpeedSlider, matrixSpeedValue, "mtrxspeed");
-    attachSlider(brightnessMatrixSlider, brightnessMatrixValue, "mtrxbrightness");
+    attachSlider(brightnessMatrixSlider, brightnessMatrixValue, "mtrxbright");
     matrixTrail.addEventListener("input", () => {
         const v = parseInt(matrixTrail.value, 10);
-        if (effectData) effectData.matrixtrail = v;
+        if (effectData) effectData.mtrxtrail = v;
         wsSendText(`mtrxtrail:${v}`);
     });
 
-    // FIRE
+    // FIRE (match: firespeed, fireintensity, firebright)
     attachSlider(fireSpeedSlider, fireSpeedValue, "firespeed");
     attachSlider(fireIntensitySlider, fireIntensityValue, "fireintensity");
-    attachSlider(brightnessFireSlider, brightnessFireValue, "firebrightness");
+    attachSlider(brightnessFireSlider, brightnessFireValue, "firebright");
 
-    // WAVES
+    // WAVES (match: wavepalette, wavespeed, wavescroll, wavecolorspeed, wavebright)
     wavePalette.addEventListener("change", () => {
         if (effectData) effectData.wavepalette = wavePalette.value;
         wsSendText(`wavepalette:${wavePalette.value}`);
@@ -361,43 +292,43 @@ document.addEventListener("DOMContentLoaded", function () {
     attachSlider(waveSpeedSlider, waveSpeedValue, "wavespeed");
     attachSlider(waveScrollSlider, waveScrollValue, "wavescroll");
     attachSlider(waveColorSpeedSlider, waveColorSpeedValue, "wavecolorspeed");
-    attachSlider(brightnessWaveSlider, brightnessWaveValue, "wavebrightness");
+    attachSlider(brightnessWaveSlider, brightnessWaveValue, "wavebright");
 
-    // PLASMA
+    // PLASMA (match: plasmapalette, plasmaspeed, plasmascale, plasmabright)
     plasmaPalette.addEventListener("change", () => {
         if (effectData) effectData.plasmapalette = plasmaPalette.value;
         wsSendText(`plasmapalette:${plasmaPalette.value}`);
     });
     attachSlider(plasmaSpeedSlider, plasmaSpeedValue, "plasmaspeed");
     attachSlider(plasmaScaleSlider, plasmaScaleValue, "plasmascale");
-    attachSlider(brightnessPlasmaSlider, brightnessPlasmaValue, "plasmabrightness");
+    attachSlider(brightnessPlasmaSlider, brightnessPlasmaValue, "plasmabright");
 
-    // SNOW
+    // SNOW (match: snowspeed, snowcount, snowwind, snowbright)
     attachSlider(snowSpeedSlider, snowSpeedValue, "snowspeed");
     attachSlider(snowCountSlider, snowCountValue, "snowcount");
     attachSlider(snowWindSlider, snowWindValue, "snowwind");
-    attachSlider(brightnessSnowSlider, brightnessSnowValue, "snowbrightness");
+    attachSlider(brightnessSnowSlider, brightnessSnowValue, "snowbright");
 
-    // STARS
+    // STARS (match: starscount, starsdimtime, starsappspeed, starscolormode, starsbright)
     attachSlider(starsCountSlider, starsCountValue, "starscount");
     attachSlider(starsDimTimeSlider, starsDimTimeValue, "starsdimtime");
     attachSlider(starsAppSpeedSlider, starsAppSpeedValue, "starsappspeed");
     attachSlider(starsColorModeSlider, starsColorModeValue, "starscolormode");
-    attachSlider(brightnessStarsSlider, brightnessStarsValue, "starsbrightness");
+    attachSlider(brightnessStarsSlider, brightnessStarsValue, "starsbright");
 
-    // WARP
+    // WARP (match: warppalette, warpspeed, warpbright, warpanglestep, warpcolorstep, warpdir, warpmode)
     warpPalette.addEventListener("change", () => {
         if (effectData) effectData.warppalette = warpPalette.value;
         wsSendText(`warppalette:${warpPalette.value}`);
     });
     attachSlider(warpSpeedSlider, warpSpeedValue, "warpspeed");
-    attachSlider(brightnessWarpSlider, brightnessWarpValue, "warpbrightness");
+    attachSlider(brightnessWarpSlider, brightnessWarpValue, "warpbright");
     attachSlider(warpAngleStepSlider, warpAngleStepValue, "warpanglestep");
     attachSlider(warpColorStepSlider, warpColorStepValue, "warpcolorstep");
     warpDirectionSlider.addEventListener("change", () => {
         const dir = warpDirectionSlider.checked ? 1 : -1;
-        if (effectData) effectData.warpdirection = dir;
-        wsSendText(`warpdirection:${dir}`);
+        if (effectData) effectData.warpdir = dir;
+        wsSendText(`warpdir:${dir}`);
     });
     warpMode.addEventListener("change", () => {
         const v = parseInt(warpMode.value, 10);
@@ -405,7 +336,7 @@ document.addEventListener("DOMContentLoaded", function () {
         wsSendText(`warpmode:${v}`);
     });
 
-    // FIREWORK
+    // FIREWORK (match: fwcount, fwspeed, fwfadespeed, fwtwinkle, fwcomet, fwburst)
     attachSlider(fwCountSlider, fwCountValue, "fwcount");
     attachSlider(fwSpeedSlider, fwSpeedValue, "fwspeed");
     attachSlider(fwFadeSpeedSlider, fwFadeSpeedValue, "fwfadespeed");
@@ -413,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
     attachSlider(fwCometSlider, fwCometValue, "fwcomet");
     attachSlider(fwBurstSlider, fwBurstValue, "fwburst");
 
-    // AURORA
+    // AURORA (match: aupalette, autime, auspeed, auscale, auyoffset, aubright)
     auPalette.addEventListener("change", () => {
         if (effectData) effectData.aupalette = auPalette.value;
         wsSendText(`aupalette:${auPalette.value}`);
@@ -422,162 +353,28 @@ document.addEventListener("DOMContentLoaded", function () {
     attachSlider(auSpeedSlider, auSpeedValue, "auspeed");
     attachSlider(auScaleSlider, auScaleValue, "auscale");
     attachSlider(auYoffsetSlider, auYoffsetValue, "auyoffset");
-    attachSlider(brightnessAuSlider, brightnessAuValue, "aubrightness");
+    attachSlider(brightnessAuSlider, brightnessAuValue, "aubright");
 
-    // CONFETTI
+    // CONFETTI (match: confdensity, confspeed, conffade, confsat, confbright)
     attachSlider(confDensitySlider, confDensityValue, "confdensity");
     attachSlider(confSpeedSlider, confSpeedValue, "confspeed");
     attachSlider(confFadeSlider, confFadeValue, "conffade");
     attachSlider(confSatSlider, confSatValue, "confsat");
-    attachSlider(brightnessConfSlider, brightnessConfValue, "confbrightness");
+    attachSlider(brightnessConfSlider, brightnessConfValue, "confbright");
 
-    // SNAKE effect sliders
-    attachSlider(snakeLengthModeSlider, snakeLengthModeValue, "snakelengthmode");
-    attachSlider(brightnessSnakeSlider, brightnessSnakeValue, "snakebrightness");
-    attachSlider(snakeTargetsSlider, snakeTargetsValue, "snaketargetcount");
-
-    // ===========================
-    // Effect selection and UI toggling
-    // ===========================
-
-    effectSelect.addEventListener("change", function () {
-        const effect = this.value;
-
-        // Show/hide controls
-        const wordclockControls = document.getElementById("wordclockControls");
-        if (wordclockControls) wordclockControls.style.display = effect === "WORDCLOCK" ? "flex" : "none";
-        scrollOptions.style.display = effect === "SCROLLMESSAGE" ? "flex" : "none";
-        rainbowControls.style.display = effect === "RAINBOW" ? "flex" : "none";
-        matrixControls.style.display = effect === "MATRIX_RAIN" ? "flex" : "none";
-        fireControls.style.display = effect === "FIRE" ? "flex" : "none";
-        wavesControls.style.display = effect === "WAVES" ? "flex" : "none";
-        plasmaControls.style.display = effect === "PLASMA" ? "flex" : "none";
-        snowControls.style.display = effect === "SNOW" ? "flex" : "none";
-        starsControls.style.display = effect === "STARS" ? "flex" : "none";
-        warpControls.style.display = effect === "WARP" ? "flex" : "none";
-        fwControls.style.display = effect === "FIREWORK" ? "flex" : "none";
-        auControls.style.display = effect === "AURORA" ? "flex" : "none";
-        confControls.style.display = effect === "CONFETTI" ? "flex" : "none";
-        snakeControls.style.display = effect === "SNAKE" ? "flex" : "none";
-
-        // Push effect selection to server
-        wsSendText(`effect:${effect}`);
-
-        // Sync UI values from effectData if available
-        syncUIFromEffectData();
-    });
+    // SNAKE (match: snlengthmode, snbrightness, sntargetcount)
+    attachSlider(snakeLengthModeSlider, snakeLengthModeValue, "snlengthmode");
+    attachSlider(brightnessSnakeSlider, brightnessSnakeValue, "snbrightness");
+    attachSlider(snakeTargetsSlider, snakeTargetsValue, "sntargetcount");
 
     // ===========================
-    // Start button → send JSON payload
+    // UI sync from effectData
     // ===========================
-
-    startButton.addEventListener("click", function () {
-        const effect = effectSelect.value;
-        const payload = { effect };
-
-        if (effect === "WORDCLOCK") {
-            payload.hetisyn = HETISynSlider.checked ? 1 : -1;
-        }
-        if (effect === "SCROLLMESSAGE") {
-            payload.scrtext = scrollText.value;
-            payload.scrduration = parseInt(scrollDuration.value, 10);
-            payload.scrspeed = parseInt(scrollSpeedSlider.value, 10);
-        }
-        if (effect === "RAINBOW") {
-            payload.rnbspeed = parseInt(rainbowSpeedSlider.value, 10);
-            payload.rnbbrightness = parseInt(brightnessRainbowSlider.value, 10);
-        }
-        if (effect === "MATRIX_RAIN") {
-            payload.mtrxspeed = parseInt(matrixSpeedSlider.value, 10);
-            payload.mtrxbrightness = parseInt(brightnessMatrixSlider.value, 10);
-            payload.mtrxtrail = parseInt(matrixTrail.value, 10);
-        }
-        if (effect === "FIRE") {
-            payload.firespeed = parseInt(fireSpeedSlider.value, 10);
-            payload.fireintensity = parseInt(fireIntensitySlider.value, 10);
-            payload.firebrightness = parseInt(brightnessFireSlider.value, 10);
-        }
-        if (effect === "WAVES") {
-            payload.wavepalette = wavePalette.value;
-            payload.wavespeed = parseInt(waveSpeedSlider.value, 10);
-            payload.wavescroll = parseInt(waveScrollSlider.value, 10);
-            payload.wavecolorspeed = parseInt(waveColorSpeedSlider.value, 10);
-            payload.wavebrightness = parseInt(brightnessWaveSlider.value, 10);
-        }
-        if (effect === "PLASMA") {
-            payload.plasmapalette = plasmaPalette.value;
-            payload.plasmaspeed = parseInt(plasmaSpeedSlider.value, 10);
-            payload.plasmascale = parseInt(plasmaScaleSlider.value, 10);
-            payload.plasmabrightness = parseInt(brightnessPlasmaSlider.value, 10);
-        }
-        if (effect === "SNOW") {
-            payload.snowspeed = parseInt(snowSpeedSlider.value, 10);
-            payload.snowcount = parseInt(snowCountSlider.value, 10);
-            payload.snowwind = parseInt(snowWindSlider.value, 10);
-            payload.snowbrightness = parseInt(brightnessSnowSlider.value, 10);
-        }
-        if (effect === "STARS") {
-            payload.starscount = parseInt(starsCountSlider.value, 10);
-            payload.starsdimtime = parseInt(starsDimTimeSlider.value, 10);
-            payload.starsappspeed = parseInt(starsAppSpeedSlider.value, 10);
-            payload.starscolormode = parseInt(starsColorModeSlider.value, 10);
-            payload.starsbrightness = parseInt(brightnessStarsSlider.value, 10);
-        }
-        if (effect === "WARP") {
-            payload.warppalette = warpPalette.value;
-            payload.warpspeed = parseInt(warpSpeedSlider.value, 10);
-            payload.warpbrightness = parseInt(brightnessWarpSlider.value, 10);
-            payload.warpanglestep = parseInt(warpAngleStepSlider.value, 10);
-            payload.warpcolorstep = parseInt(warpColorStepSlider.value, 10);
-            payload.warpdirection = warpDirectionSlider.checked ? 1 : -1;
-            payload.warpmode = parseInt(warpMode.value, 10);
-        }
-        if (effect === "FIREWORK") {
-            payload.fwcount = parseInt(fwCountSlider.value, 10);
-            payload.fwspeed = parseInt(fwSpeedSlider.value, 10);
-            payload.fwfadespeed = parseInt(fwFadeSpeedSlider.value, 10);
-            payload.fwtwinkle = parseInt(fwTwinkleSlider.value, 10);
-            payload.fwcomet = parseInt(fwCometSlider.value, 10);
-            payload.fwburst = parseInt(fwBurstSlider.value, 10);
-        }
-        if (effect === "AURORA") {
-            payload.aupalette = auPalette.value;
-            payload.autime = parseInt(auTimeSlider.value, 10);
-            payload.auspeed = parseInt(auSpeedSlider.value, 10);
-            payload.auscale = parseInt(auScaleSlider.value, 10);
-            payload.auyoffset = parseInt(auYoffsetSlider.value, 10);
-            payload.aubrightness = parseInt(brightnessAuSlider.value, 10);
-        }
-        if (effect === "CONFETTI") {
-            payload.confdensity = parseInt(confDensitySlider.value, 10);
-            payload.confspeed = parseInt(confSpeedSlider.value, 10);
-            payload.conffade = parseInt(confFadeSlider.value, 10);
-            payload.confsat = parseInt(confSatSlider.value, 10);
-            payload.confbrightness = parseInt(brightnessConfSlider.value, 10);
-        }
-        if (effect === "SNAKE") {
-            payload.snakelengthmode = parseInt(snakeLengthModeSlider.value, 10);
-            payload.snakebrightness = parseInt(brightnessSnakeSlider.value, 10);
-            payload.snaketargetcount = parseInt(snakeTargetsSlider.value, 10);
-        }
-
-        wsSendJSON(payload);
-        console.log("Effect payload sent:", payload);
-    });
-
-    // ===========================
-    // UI sync helper from effectData
-    // ===========================
-
     function syncUIFromEffectData() {
-        console.log("syncUIFromEffectData called");
-        if (!effectData) {
-            console.log("No effectData yet");
-            return;
-        }
-        console.log("Syncing effect:", effectData.effect);
+        if (!effectData) return;
+
+        // dropdown
         effectSelect.value = effectData.effect;
-        console.log("Dropdown value is now:", effectSelect.value);
         const effect = effectData.effect;
 
         if (effect === "WORDCLOCK") {
@@ -592,13 +389,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (effect === "RAINBOW") {
             rainbowSpeedSlider.value = effectData.rnbspeed ?? rainbowSpeedSlider.value;
             rainbowSpeedValue.textContent = rainbowSpeedSlider.value;
-            brightnessRainbowSlider.value = effectData.rnbbrightness ?? brightnessRainbowSlider.value;
+            brightnessRainbowSlider.value = effectData.rnbbright ?? brightnessRainbowSlider.value;
             brightnessRainbowValue.textContent = brightnessRainbowSlider.value;
         }
         if (effect === "MATRIX_RAIN") {
             matrixSpeedSlider.value = effectData.mtrxspeed ?? matrixSpeedSlider.value;
             matrixSpeedValue.textContent = matrixSpeedSlider.value;
-            brightnessMatrixSlider.value = effectData.mtrxbrightness ?? brightnessMatrixSlider.value;
+            brightnessMatrixSlider.value = effectData.mtrxbright ?? brightnessMatrixSlider.value;
             brightnessMatrixValue.textContent = brightnessMatrixSlider.value;
             matrixTrail.value = effectData.mtrxtrail ?? matrixTrail.value;
         }
@@ -607,7 +404,7 @@ document.addEventListener("DOMContentLoaded", function () {
             fireSpeedValue.textContent = fireSpeedSlider.value;
             fireIntensitySlider.value = effectData.fireintensity ?? fireIntensitySlider.value;
             fireIntensityValue.textContent = fireIntensitySlider.value;
-            brightnessFireSlider.value = effectData.firebrightness ?? brightnessFireSlider.value;
+            brightnessFireSlider.value = effectData.firebright ?? brightnessFireSlider.value;
             brightnessFireValue.textContent = brightnessFireSlider.value;
         }
         if (effect === "WAVES") {
@@ -618,7 +415,7 @@ document.addEventListener("DOMContentLoaded", function () {
             waveScrollValue.textContent = waveScrollSlider.value;
             waveColorSpeedSlider.value = effectData.wavecolorspeed ?? waveColorSpeedSlider.value;
             waveColorSpeedValue.textContent = waveColorSpeedSlider.value;
-            brightnessWaveSlider.value = effectData.wavebrightness ?? brightnessWaveSlider.value;
+            brightnessWaveSlider.value = effectData.wavebright ?? brightnessWaveSlider.value;
             brightnessWaveValue.textContent = brightnessWaveSlider.value;
         }
         if (effect === "PLASMA") {
@@ -627,7 +424,7 @@ document.addEventListener("DOMContentLoaded", function () {
             plasmaSpeedValue.textContent = plasmaSpeedSlider.value;
             plasmaScaleSlider.value = effectData.plasmascale ?? plasmaScaleSlider.value;
             plasmaScaleValue.textContent = plasmaScaleSlider.value;
-            brightnessPlasmaSlider.value = effectData.plasmabrightness ?? brightnessPlasmaSlider.value;
+            brightnessPlasmaSlider.value = effectData.plasmabright ?? brightnessPlasmaSlider.value;
             brightnessPlasmaValue.textContent = brightnessPlasmaSlider.value;
         }
         if (effect === "SNOW") {
@@ -637,7 +434,7 @@ document.addEventListener("DOMContentLoaded", function () {
             snowCountValue.textContent = snowCountSlider.value;
             snowWindSlider.value = effectData.snowwind ?? snowWindSlider.value;
             snowWindValue.textContent = snowWindSlider.value;
-            brightnessSnowSlider.value = effectData.snowbrightness ?? brightnessSnowSlider.value;
+            brightnessSnowSlider.value = effectData.snowbright ?? brightnessSnowSlider.value;
             brightnessSnowValue.textContent = brightnessSnowSlider.value;
         }
         if (effect === "STARS") {
@@ -649,20 +446,20 @@ document.addEventListener("DOMContentLoaded", function () {
             starsAppSpeedValue.textContent = starsAppSpeedSlider.value;
             starsColorModeSlider.value = effectData.starscolormode ?? starsColorModeSlider.value;
             starsColorModeValue.textContent = starsColorModeSlider.value;
-            brightnessStarsSlider.value = effectData.starsbrightness ?? brightnessStarsSlider.value;
+            brightnessStarsSlider.value = effectData.starsbright ?? brightnessStarsSlider.value;
             brightnessStarsValue.textContent = brightnessStarsSlider.value;
         }
         if (effect === "WARP") {
             warpPalette.value = effectData.warppalette ?? warpPalette.value;
             warpSpeedSlider.value = effectData.warpspeed ?? warpSpeedSlider.value;
             warpSpeedValue.textContent = warpSpeedSlider.value;
-            brightnessWarpSlider.value = effectData.warpbrightness ?? brightnessWarpSlider.value;
+            brightnessWarpSlider.value = effectData.warpbright ?? brightnessWarpSlider.value;
             brightnessWarpValue.textContent = brightnessWarpSlider.value;
             warpAngleStepSlider.value = effectData.warpanglestep ?? warpAngleStepSlider.value;
             warpAngleStepValue.textContent = warpAngleStepSlider.value;
             warpColorStepSlider.value = effectData.warpcolorstep ?? warpColorStepSlider.value;
             warpColorStepValue.textContent = warpColorStepSlider.value;
-            warpDirectionSlider.checked = (effectData.warpdirection === 1) ?? warpDirectionSlider.checked;
+            warpDirectionSlider.checked = (effectData.warpdir === 1) ?? warpDirectionSlider.checked;
             warpMode.value = effectData.warpmode ?? warpMode.value;
         }
         if (effect === "FIREWORK") {
@@ -689,7 +486,7 @@ document.addEventListener("DOMContentLoaded", function () {
             auScaleValue.textContent = auScaleSlider.value;
             auYoffsetSlider.value = effectData.auyoffset ?? auYoffsetSlider.value;
             auYoffsetValue.textContent = auYoffsetSlider.value;
-            brightnessAuSlider.value = effectData.aubrightness ?? brightnessAuSlider.value;
+            brightnessAuSlider.value = effectData.aubright ?? brightnessAuSlider.value;
             brightnessAuValue.textContent = brightnessAuSlider.value;
         }
         if (effect === "CONFETTI") {
@@ -701,19 +498,85 @@ document.addEventListener("DOMContentLoaded", function () {
             confFadeValue.textContent = confFadeSlider.value;
             confSatSlider.value = effectData.confsat ?? confSatSlider.value;
             confSatValue.textContent = confSatSlider.value;
-            brightnessConfSlider.value = effectData.confbrightness ?? brightnessConfSlider.value;
+            brightnessConfSlider.value = effectData.confbright ?? brightnessConfSlider.value;
             brightnessConfValue.textContent = brightnessConfSlider.value;
         }
         if (effect === "SNAKE") {
-            snakeLengthModeSlider.value = effectData.snakelengthmode ?? snakeLengthModeSlider.value;
+            snakeLengthModeSlider.value = effectData.snlengthmode ?? snakeLengthModeSlider.value;
             snakeLengthModeValue.textContent = snakeLengthModeSlider.value;
-            brightnessSnakeSlider.value = effectData.snakebrightness ?? brightnessSnakeSlider.value;
+            brightnessSnakeSlider.value = effectData.snbrightness ?? brightnessSnakeSlider.value;
             brightnessSnakeValue.textContent = brightnessSnakeSlider.value;
-            snakeTargetsSlider.value = effectData.snaketargetcount ?? snakeTargetsSlider.value;
+            snakeTargetsSlider.value = effectData.sntargetcount ?? snakeTargetsSlider.value;
             snakeTargetsValue.textContent = snakeTargetsSlider.value;
         }
     }
 
+    // ===========================
+    // Color picker
+    // ===========================
+    const MAX_SIZE = 500;
+    const size = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
+
+    const colorPicker = new iro.ColorPicker("#picker", {
+        width: size,
+        color: "#ffffff",
+        layout: [
+            { component: iro.ui.Wheel },
+            { component: iro.ui.Slider, options: { sliderType: "value" } },
+        ],
+    });
+
+    window.addEventListener("resize", () => {
+        const newSize = Math.min(window.innerWidth, window.innerHeight, MAX_SIZE) * 0.8;
+        colorPicker.resize(newSize);
+    });
+
+    colorPicker.on("color:change", function (color) {
+        const { r, g, b } = color.rgb;
+        document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        wsSendText(`color:${r},${g},${b}`);
+    });
+
+    // ===========================
+    // WebSocket setup
+    // ===========================
+    function connectEffect() {
+        wsEffect = new WebSocket("ws://" + window.location.host + "/effect");
+
+        wsEffect.onopen = () => {
+            console.log("WebSocket connected");
+            const scoreEl = document.getElementById("snake-score");
+            if (scoreEl) scoreEl.textContent = "Score: 0 (connected)";
+            try { wsEffect.send("getstate"); } catch (e) {}
+        };
+
+        wsEffect.onclose = () => {
+            console.log("WebSocket disconnected");
+            const scoreEl = document.getElementById("snake-score");
+            if (scoreEl) scoreEl.textContent = "Score: ? (disconnected)";
+            setTimeout(connectEffect, 3000);
+        };
+
+        wsEffect.onmessage = (event) => {
+            const msg = event.data;
+            if (typeof msg === "string" && msg.startsWith("score:")) {
+                const scoreEl = document.getElementById("snake-score");
+                if (scoreEl) scoreEl.textContent = "Score: " + msg.split(":")[1];
+                return;
+            }
+            try {
+                const data = JSON.parse(msg);
+                effectData = data;
+                console.log("Got effectData:", effectData);
+                syncUIFromEffectData();
+            } catch (e) {
+                console.log("Server message:", msg);
+            }
+        };
+    }
+
+    // ===========================
     // Start
+    // ===========================
     connectEffect();
 });
