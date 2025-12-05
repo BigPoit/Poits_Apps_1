@@ -389,7 +389,7 @@
         const effect = this.value;
         toggleControls(effect);
         wsSendText(`effect:${effect}`);
-        if (effectData) syncUIFromEffectData();
+        //if (effectData) syncUIFromEffectData();
     });
 
     // ===========================
