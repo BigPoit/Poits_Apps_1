@@ -229,6 +229,33 @@
     fillPaletteSelect(warpPalette);
     fillPaletteSelect(auPalette);
 
+    effectSelect.addEventListener("change", function () {
+        const effect = this.value;
+
+        // Show/hide controls
+        const wordclockControls = document.getElementById("wordclockControls");
+        if (wordclockControls) wordclockControls.style.display = effect === "WORDCLOCK" ? "flex" : "none";
+        scrollOptions.style.display = effect === "SCROLLMESSAGE" ? "flex" : "none";
+        rainbowControls.style.display = effect === "RAINBOW" ? "flex" : "none";
+        matrixControls.style.display = effect === "MATRIX_RAIN" ? "flex" : "none";
+        fireControls.style.display = effect === "FIRE" ? "flex" : "none";
+        wavesControls.style.display = effect === "WAVES" ? "flex" : "none";
+        plasmaControls.style.display = effect === "PLASMA" ? "flex" : "none";
+        snowControls.style.display = effect === "SNOW" ? "flex" : "none";
+        starsControls.style.display = effect === "STARS" ? "flex" : "none";
+        warpControls.style.display = effect === "WARP" ? "flex" : "none";
+        fwControls.style.display = effect === "FIREWORK" ? "flex" : "none";
+        auControls.style.display = effect === "AURORA" ? "flex" : "none";
+        confControls.style.display = effect === "CONFETTI" ? "flex" : "none";
+        snakeControls.style.display = effect === "SNAKE" ? "flex" : "none";
+
+        // Push effect selection to server
+        wsSendText(`effect:${effect}`);
+
+        // Sync UI values from effectData if available
+        syncUIFromEffectData();
+    });
+
     // ===========================
     // Slider helper
     // ===========================
@@ -376,6 +403,10 @@
         // dropdown
         effectSelect.value = effectData.effect;
         const effect = effectData.effect;
+
+        // trigger de change-event → wrappers tonen
+        const evt = new Event("change");
+        effectSelect.dispatchEvent(evt);
 
         if (effect === "WORDCLOCK") {
             HETISynSlider.checked = (effectData.hetisyn === 1);
