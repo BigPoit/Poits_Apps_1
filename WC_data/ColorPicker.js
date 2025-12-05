@@ -389,7 +389,11 @@
         const effect = this.value;
         toggleControls(effect);
         wsSendText(`effect:${effect}`);
-        //if (effectData) syncUIFromEffectData();
+        // forceer lokaal dat effectData.effect verandert
+        if (effectData) {
+            effectData.effect = effect;
+            syncUIFromEffectData();
+        }
     });
 
     // ===========================
