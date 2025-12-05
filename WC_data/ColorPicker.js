@@ -2,30 +2,30 @@
 // WebSocket setup and helpers
 // ===========================
 
-let wsSnake;
+let wsEffect;
 let effectData = null; // optional local cache for UI sync
 
-function connectSnake() {
-    wsSnake = new WebSocket("ws://" + window.location.host + "/effect");
+function connectEffect() {
+    wsEffect = new WebSocket("ws://" + window.location.host + "/effect");
 
-    wsSnake.onopen = () => {
+    wsEffect.onopen = () => {
         console.log("WebSocket connected");
         const scoreEl = document.getElementById("snake-score");
         if (scoreEl) scoreEl.textContent = "Score: 0 (connected)";
         // request current state if server supports it
         try {
-            wsSnake.send("getstate");
+            wsEffect.send("getstate");
         } catch (e) { }
     };
 
-    wsSnake.onclose = () => {
+    wsEffect.onclose = () => {
         console.log("WebSocket disconnected");
         const scoreEl = document.getElementById("snake-score");
         if (scoreEl) scoreEl.textContent = "Score: ? (disconnected)";
-        setTimeout(connectSnake, 3000);
+        setTimeout(connectEffect, 3000);
     };
 
-    wsSnake.onmessage = (event) => {
+    wsEffect.onmessage = (event) => {
         // Basic message handling: score updates or JSON state
         const msg = event.data;
         if (typeof msg === "string" && msg.startsWith("score:")) {
@@ -45,16 +45,16 @@ function connectSnake() {
 }
 
 function wsSendText(text) {
-    if (wsSnake && wsSnake.readyState === WebSocket.OPEN) {
-        wsSnake.send(text);
+    if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
+        wsEffect.send(text);
     } else {
         console.warn("WebSocket not connected, cannot send:", text);
     }
 }
 
 function wsSendJSON(payload) {
-    if (wsSnake && wsSnake.readyState === WebSocket.OPEN) {
-        wsSnake.send(JSON.stringify(payload));
+    if (wsEffect && wsEffect.readyState === WebSocket.OPEN) {
+        wsEffect.send(JSON.stringify(payload));
     } else {
         console.error("WebSocket not connected, cannot send JSON:", payload);
     }
@@ -703,5 +703,5 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Start
-    connectSnake();
+    connectEffect();
 });
