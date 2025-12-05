@@ -566,7 +566,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function syncUIFromEffectData() {
         if (!effectData) return;
-        const effect = effectSelect.value;
+
+        // zet de dropdown zelf op de juiste waarde
+        effectSelect.value = effectData.effect;
+        const effect = effectData.effect;
 
         if (effect === "WORDCLOCK") {
             HETISynSlider.checked = (effectData.hetisyn === 1);
