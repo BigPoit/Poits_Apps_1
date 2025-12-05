@@ -37,7 +37,12 @@ function connectEffect() {
         try {
             const data = JSON.parse(msg);
             effectData = data;
-            syncUIFromEffectData();
+            console.log("Got effectData:", effectData);
+            try {
+                syncUIFromEffectData();
+            } catch (err) {
+                console.error("syncUIFromEffectData crashed:", err);
+            }
         } catch (e) {
             console.log("Server message:", msg);
         }
@@ -565,10 +570,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // ===========================
 
     function syncUIFromEffectData() {
-        if (!effectData) return;
-
-        // zet de dropdown zelf op de juiste waarde
+        console.log("syncUIFromEffectData called");
+        if (!effectData) {
+            console.log("No effectData yet");
+            return;
+        }
+        console.log("Syncing effect:", effectData.effect);
         effectSelect.value = effectData.effect;
+        console.log("Dropdown value is now:", effectSelect.value);
         const effect = effectData.effect;
 
         if (effect === "WORDCLOCK") {
