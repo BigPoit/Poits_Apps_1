@@ -265,7 +265,7 @@
     // Event bindings (voorbeeld)
     // ===========================
     window.sendSnakeCmd = function (cmd) {
-        wsSendText(cmd);
+        wsSendText(`${cmd}:1`);
     };
 
     HETISynSlider.addEventListener("change", () => {
@@ -274,10 +274,11 @@
         wsSendText(`hetisyn:${yn}`);
     });
 
-    scrollText.addEventListener("input", () => {
-        if (effectData) effectData.scrtext = scrollText.value;
-        wsSendText(`scrtext:${encodeURIComponent(scrollText.value)}`);
-    });
+    // Alleen wanneer op start gedrukt wordt en niet bij iedere letter.
+    //scrollText.addEventListener("input", () => {
+    //    if (effectData) effectData.scrtext = scrollText.value;
+    //    wsSendText(`scrtext:${encodeURIComponent(scrollText.value)}`);
+    //});
     scrollDuration.addEventListener("input", () => {
         const v = parseInt(scrollDuration.value, 10);
         if (effectData) effectData.scrduration = v;
