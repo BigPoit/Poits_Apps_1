@@ -715,16 +715,30 @@
 
         wsEffect.onmessage = (event) => {
             const msg = event.data;
+
+            // Snake score
             if (typeof msg === "string" && msg.startsWith("score:")) {
                 const scoreEl = document.getElementById("snake-score");
                 if (scoreEl) scoreEl.textContent = "Score: " + msg.split(":")[1];
                 return;
             }
+
             try {
                 const data = JSON.parse(msg);
                 effectData = data;
                 console.log("Got effectData:", effectData);
                 syncUIFromEffectData();
+
+                // Zet colorpicker en achtergrond als kleur aanwezig is
+                if (data.color_r !== undefined && data.color_g !== undefined && data.color_b !== undefined) {
+                    colorPicker.color.rgb = {
+                        r: data.color_r,
+                        g: data.color_g,
+                        b: data.color_b
+                    };
+                    document.body.style.backgroundColor =
+                        `rgb(${data.color_r}, ${data.color_g}, ${data.color_b})`;
+                }
             } catch (e) {
                 console.log("Server message:", msg);
             }
